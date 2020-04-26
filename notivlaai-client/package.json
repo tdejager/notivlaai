@@ -1,0 +1,68 @@
+{
+  "name": "typescript-template",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "author": "Tim de Jager",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^24.0.25",
+    "@types/node": "^13.1.1",
+    "@typescript-eslint/eslint-plugin": "^2.13.0",
+    "@typescript-eslint/parser": "^2.13.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-config-prettier": "^6.9.0",
+    "eslint-plugin-import": "^2.19.1",
+    "eslint-plugin-jest": "^23.1.1",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-react": "^7.17.0",
+    "eslint-plugin-react-hooks": "^2.3.0",
+    "husky": "^3.1.0",
+    "jest": "^24.9.0",
+    "parcel": "^1.12.4",
+    "prettier": "^1.19.1",
+    "ts-jest": "^24.2.0",
+    "ts-node": "^8.5.4",
+    "typescript": "^3.7.4"
+  },
+  "scripts": {
+    "develop": "concurrently -r \"npm:type-check:watch\" \"npm:start\"",
+    "start": "parcel ./src/index.html",
+    "build": "yarn run type-check && parcel build ./src/index.html --public-url '/'",
+    "test": "jest",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "lint": "eslint './src/**/*.{ts,tsx}'",
+    "lint:fix": "yarn lint --fix",
+    "cli": "ts-node src/cli.ts",
+    "format": "prettier --write './src/**/*.{ts,tsx}'"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn lint && npm run test"
+    }
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "<rootDir>/tsconfig.json"
+      }
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ],
+    "moduleNameMapper": {
+      ".+\\.css$": "<rootDir>/src/test-support/assetMock.ts",
+      "^[./a-zA-Z0-9$_-]+\\.svg": "<rootDir>/src/test-support/assetMock.ts",
+      "^[./a-zA-Z0-9$_-]+\\.png": "<rootDir>/src/test-support/assetMock.ts",
+      "^[./a-zA-Z0-9$_-]+\\.mp4": "<rootDir>/src/test-support/assetMock.ts"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx,ts,tsx}"
+    ]
+  }
+}
