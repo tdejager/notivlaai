@@ -41,17 +41,18 @@ export const BestellingHeader = styled.h3`
 
 export const Vlaai = styled.img`
   max-width: 100%;
-  max-height: 100%;
+  max-height: 30vmin;
   object-fit: contain;
   border: 1px solid #fbf1c7;
   border-radius: 10px;
 `;
 
 export enum VlaaiType {
-  Abrikoos,
-  Kruimelpudding,
-  HalfHalf,
-  Kers
+  Abrikoos = 'Abrikoos',
+  Kruimelpudding = 'Kruimelpudding',
+  HalfHalf = 'HalfHalf',
+  Kers = 'Kers',
+  Appel = 'Appel'
 }
 
 // Converts a vlaai enum to the correct image
@@ -60,6 +61,7 @@ export function vlaaiToImage(vlaaiType: VlaaiType) {
     case VlaaiType.Abrikoos:
     case VlaaiType.HalfHalf:
     case VlaaiType.Kers:
+    case VlaaiType.Appel:
     case VlaaiType.Kruimelpudding:
       return vlaaiImage;
     default:

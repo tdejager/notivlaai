@@ -28,18 +28,23 @@ function VlaaiDisplay(props: { vlaai: VlaaiType; amount: number }) {
   );
 }
 
+export interface OrderRow {
+  vlaai: VlaaiType;
+  amount: number;
+}
+
 export interface OrderProps {
   clientName: string;
-  orders: [{ vlaai: VlaaiType; amount: number }];
+  rows: Array<OrderRow>;
 }
 /**
  * This is a single order for a client
  */
 export function OrderComponent(props: OrderProps) {
-  const { clientName, orders } = props;
+  const { clientName, rows } = props;
 
-  const displayOrders = orders.map(value => {
-    return VlaaiDisplay(value);
+  const displayOrders = rows.map(value => {
+    return <VlaaiDisplay key={value.vlaai.toString()} vlaai={value.vlaai} amount={value.amount} />;
   });
 
   return (
