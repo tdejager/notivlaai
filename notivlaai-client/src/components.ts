@@ -52,7 +52,7 @@ export enum VlaaiType {
   Kruimelpudding = 'Kruimelpudding',
   HalfHalf = 'HalfHalf',
   Kers = 'Kers',
-  Appel = 'Appel'
+  Appel = 'Appel',
 }
 
 // Converts a vlaai enum to the correct image

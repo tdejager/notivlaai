@@ -8,13 +8,13 @@ import { VlaaiType, Order, BestellingHeader, Vlaai, Vlaaien, vlaaiToImage } from
 function VlaaiDisplay(props: { vlaai: VlaaiType; amount: number }) {
   const { vlaai, amount } = props;
   const style: React.CSSProperties = {
-    overflowWrap: 'anywhere'
+    overflowWrap: 'anywhere',
   };
 
   const subTextStyle: React.CSSProperties = {
     margin: '0',
     padding: '0',
-    textAlign: 'center'
+    textAlign: 'center',
   };
 
   return (
@@ -43,7 +43,7 @@ export interface OrderProps {
 export function OrderComponent(props: OrderProps) {
   const { clientName, rows } = props;
 
-  const displayOrders = rows.map(value => {
+  const displayOrders = rows.map((value) => {
     return <VlaaiDisplay key={value.vlaai.toString()} vlaai={value.vlaai} amount={value.amount} />;
   });
 

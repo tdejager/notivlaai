@@ -9,26 +9,26 @@ const testData: OrderProps = {
   rows: [
     {
       vlaai: VlaaiType.Kers,
-      amount: 3
+      amount: 3,
     },
     {
       vlaai: VlaaiType.Abrikoos,
-      amount: 3
-    }
-  ]
+      amount: 3,
+    },
+  ],
 };
 
-const [useStore, api] = create(set => ({
+const [useStore, api] = create((set) => ({
   allOrders: [],
-  addOrder: (order: OrderProps) => set(state => ({ orders: [...state.orders, order] }))
+  addOrder: (order: OrderProps) => set((state) => ({ orders: [...state.orders, order] })),
 }));
 
 // Set some test data
 api.setState({ allOrders: [testData] });
 
 function AllOrders() {
-  const order: [OrderProps] = useStore(state => state.allOrders);
-  const allOrders = order.map(value => (
+  const order: [OrderProps] = useStore((state) => state.allOrders);
+  const allOrders = order.map((value) => (
     <OrderComponent key={value.clientName} clientName={value.clientName} rows={value.rows} />
   ));
   return <OrderContainer>{allOrders}</OrderContainer>;
