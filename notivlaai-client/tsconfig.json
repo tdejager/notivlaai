@@ -1,26 +1,18 @@
+
 {
   "compilerOptions": {
-    "target": "es5",
-    "module": "commonjs",
-    "esModuleInterop": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-    "isolatedModules": false,
+    "baseUrl": "./src",
+    "paths": {
+      "~*": ["./*"]
+    },
     "jsx": "react",
-    "rootDir": "./src",
-    "incremental": true,
-    "experimentalDecorators": true,
-    "lib": [
-      "dom",
-      "es2017"
-    ],
-    "types": [
-      "node",
-      "jest"
-    ]
+    "typeRoots": ["node_modules/@types"],
+    "target": "es5",
+    "esModuleInterop": true,
+    "module": "esnext",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "lib": ["es2017", "dom"]
   },
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src/**/*"]
 }

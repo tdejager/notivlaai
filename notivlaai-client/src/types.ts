@@ -1,4 +1,4 @@
-import vlaaiImage from '../assets/vlaai.jpg';
+import vlaaiImage from './assets/vlaai.jpg';
 
 // Type of vlaai
 export enum VlaaiType {
