@@ -2,9 +2,6 @@
 {
   "compilerOptions": {
     "baseUrl": "./src",
-    "paths": {
-      "~*": ["./*"]
-    },
     "jsx": "react",
     "typeRoots": ["node_modules/@types"],
     "target": "es5",

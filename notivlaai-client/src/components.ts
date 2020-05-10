@@ -55,6 +55,7 @@ export const Button = styled.button`
     background-color: #282828;
   }
 `;
+Button.displayName = 'Button';
 
 export const Vlaai = styled.img`
   max-width: 100%;

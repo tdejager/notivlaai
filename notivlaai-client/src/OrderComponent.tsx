@@ -33,6 +33,7 @@ function VlaaiDisplay(props: { vlaai: VlaaiType; amount: number }) {
 export interface OrderProps {
   order: OrderType;
   onDelivered: () => void;
+  disableAnimations?: boolean;
 }
 
 const AnimatedOrder = animated(Order);
@@ -40,7 +41,7 @@ const AnimatedOrder = animated(Order);
  * This is a single order for a client
  */
 export function OrderComponent(props: OrderProps) {
-  const { order, onDelivered } = props;
+  const { order, onDelivered, disableAnimations } = props;
   const { clientName } = order;
 
   const [leave, setLeave] = React.useState(false);
@@ -66,7 +67,7 @@ export function OrderComponent(props: OrderProps) {
     <AnimatedOrder style={style}>
       <BestellingHeader>Bestelling voor {clientName}:</BestellingHeader>
       <Vlaaien>{displayOrders}</Vlaaien>
-      <Button onClick={() => setLeave(true)}>
+      <Button onClick={() => (!disableAnimations ? setLeave(true) : onDelivered())}>
         <span role="img" aria-label="check">
           ✔️&nbsp;
         </span>

@@ -5,11 +5,8 @@
   "author": "Tim de Jager",
   "license": "MIT",
   "devDependencies": {
-    "@babel/core": "^7.9.6",
-    "@babel/plugin-transform-runtime": "^7.9.6",
-    "@babel/preset-react": "^7.9.4",
-    "@babel/preset-typescript": "^7.9.0",
     "@types/enzyme": "^3.10.5",
+    "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/jest": "^25.2.1",
     "@types/node": "^13.13.5",
     "@types/react": "^16.9.34",
@@ -17,7 +14,6 @@
     "@types/styled-components": "^5.1.0",
     "@typescript-eslint/eslint-plugin": "^2.31.0",
     "@typescript-eslint/parser": "^2.31.0",
-    "babel-jest": "^26.0.1",
     "concurrently": "^5.2.0",
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.2",
@@ -34,6 +30,7 @@
     "jest": "^25.0.1",
     "parcel": "^1.12.4",
     "prettier": "^2.0.5",
+    "ts-jest": "^25.5.1",
     "ts-node": "^8.10.1",
     "typescript": "^3.7.4"
   },
@@ -55,6 +52,7 @@
     }
   },
   "jest": {
+    "preset": "ts-jest",
     "globals": {},
     "moduleFileExtensions": [
       "ts",
@@ -67,11 +65,7 @@
     },
     "collectCoverageFrom": [
       "src/**/*.{js,jsx,ts,tsx}"
-    ],
-    "transform": {
-      "^.+\\.[t|j]sx?$": "babel-jest",
-      "^.+.js$": "babel-jest"
-    }
+    ]
   },
   "dependencies": {
     "normalize.css": "^8.0.1",
