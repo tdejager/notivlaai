@@ -1,9 +1,10 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
-import create, { UseStore, State } from 'zustand';
+import { UseStore, State } from 'zustand';
 import { OrderContainer } from './components';
-import { OrderProps, OrderComponent } from './OrderComponent';
+import { OrderComponent } from './OrderComponent';
 import { VlaaiType, OrderType } from './types';
+import setupStore from './store';
 
 const testData: OrderType = {
   id: 0,
@@ -24,12 +25,7 @@ const test2 = { ...testData };
 test2.clientName = 'Saskia Winkeler';
 test2.id = 1;
 
-const [useStoreHook, api] = create((set) => ({
-  orders: [],
-  addOrder: (order: OrderType) => set((state) => ({ orders: [...state.orders, order] })),
-  removeOrder: (order: OrderType) =>
-    set((state) => ({ orders: [...state.orders.filter((v: OrderType) => v.id !== order.id)] })),
-}));
+const [useStoreHook, api] = setupStore();
 
 // Set some test data
 api.setState({ orders: [testData] });
