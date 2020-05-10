@@ -1,10 +1,12 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
-import create from 'zustand';
-import { OrderContainer, VlaaiType } from './components';
+import create, { UseStore, State } from 'zustand';
+import { OrderContainer } from './components';
 import { OrderProps, OrderComponent } from './OrderComponent';
+import { VlaaiType, OrderType } from './types';
 
-const testData: OrderProps = {
+const testData: OrderType = {
+  id: 0,
   clientName: 'Tim de Jager',
   rows: [
     {
@@ -18,21 +20,37 @@ const testData: OrderProps = {
   ],
 };
 
-const [useStore, api] = create((set) => ({
-  allOrders: [],
-  addOrder: (order: OrderProps) => set((state) => ({ orders: [...state.orders, order] })),
+const test2 = { ...testData };
+test2.clientName = 'Saskia Winkeler';
+test2.id = 1;
+
+const [useStoreHook, api] = create((set) => ({
+  orders: [],
+  addOrder: (order: OrderType) => set((state) => ({ orders: [...state.orders, order] })),
+  removeOrder: (order: OrderType) =>
+    set((state) => ({ orders: [...state.orders.filter((v: OrderType) => v.id !== order.id)] })),
 }));
 
 // Set some test data
-api.setState({ allOrders: [testData] });
+api.setState({ orders: [testData] });
+window.setTimeout(() => api.setState({ orders: [testData, test2] }), 1000);
 
-function AllOrders() {
-  const order: [OrderProps] = useStore((state) => state.allOrders);
-  const allOrders = order.map((value) => (
-    <OrderComponent key={value.clientName} clientName={value.clientName} rows={value.rows} />
+interface AppProps {
+  useStore: UseStore<State>;
+}
+
+function App(props: AppProps) {
+  const { useStore } = props;
+  const { orders, removeOrder } = useStore((state) => ({
+    orders: state.orders,
+    removeOrder: state.removeOrder,
+  }));
+
+  const allOrders = orders.map((value: OrderType) => (
+    <OrderComponent key={value.id} order={value} onDelivered={() => removeOrder(value)} />
   ));
   return <OrderContainer>{allOrders}</OrderContainer>;
 }
 const mount = document.getElementById('orders');
 
-ReactDOM.render(<AllOrders> </AllOrders>, mount);
+ReactDOM.render(<App useStore={useStoreHook} />, mount);

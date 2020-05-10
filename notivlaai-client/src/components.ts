@@ -1,6 +1,5 @@
 import 'normalize.css';
 import styled from 'styled-components';
-import vlaaiImage from '../assets/vlaai.jpg';
 
 export const OrderContainer = styled.div`
   display: grid;
@@ -11,8 +10,10 @@ export const OrderContainer = styled.div`
 
 export const Order = styled.div`
   display: grid;
-  grid-template-rows: 1fr 3fr 2fr;
+  grid-template-rows: 1fr 3fr 1fr;
+  justify-items: center;
   background-color: #3c3836;
+  grid-gap: 2vmin 0px;
   border-radius: 10px;
 `;
 
@@ -27,44 +28,38 @@ export const Vlaaien = styled.div`
 
 export const BestellingHeader = styled.h3`
   color: #ebdbb2;
-  text-align: center;
 `;
 
-// export const Vlaai = styled.div`
-// object-fit: cover;
-// min-width: 100%;
-// min-height: 100%;
-// background-image: url(${vlaai});
-// background-size: cover;
-// `;
-// Vlaai.displayName = 'Vlaai';
+export const Button = styled.button`
+  background-color: #458588; /* Blue */
+  border: 1px solid #a89984;
+  border-radius: 3px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  justify-content: center;
+  align-self: center;
+  max-width: 50%;
+  color: #ebdbb2;
+  padding: 15px 32px;
+  text-align: center;
+  font-size: 16px;
+  &:hover {
+    transition: color 0.2s, background-color 0.2s;
+    color: white;
+    background-color: #b8bb26;
+  }
+  &:active {
+    transition: color 0.1s, background-color 0.1s;
+    color: #ebdbb2;
+    background-color: #282828;
+  }
+`;
 
 export const Vlaai = styled.img`
   max-width: 100%;
-  max-height: 30vmin;
+  max-height: 20vmin;
   object-fit: contain;
   border: 1px solid #fbf1c7;
   border-radius: 10px;
 `;
-
-export enum VlaaiType {
-  Abrikoos = 'Abrikoos',
-  Kruimelpudding = 'Kruimelpudding',
-  HalfHalf = 'HalfHalf',
-  Kers = 'Kers',
-  Appel = 'Appel',
-}
-
-// Converts a vlaai enum to the correct image
-export function vlaaiToImage(vlaaiType: VlaaiType) {
-  switch (vlaaiType) {
-    case VlaaiType.Abrikoos:
-    case VlaaiType.HalfHalf:
-    case VlaaiType.Kers:
-    case VlaaiType.Appel:
-    case VlaaiType.Kruimelpudding:
-      return vlaaiImage;
-    default:
-      return vlaaiImage;
-  }
-}

@@ -12,6 +12,7 @@
     "@types/styled-components": "^5.1.0",
     "@typescript-eslint/eslint-plugin": "^2.31.0",
     "@typescript-eslint/parser": "^2.31.0",
+    "concurrently": "^5.2.0",
     "eslint": "^6.8.0",
     "eslint-config-airbnb": "^18.0.1",
     "eslint-config-prettier": "^6.9.0",
@@ -34,8 +35,8 @@
     "start": "parcel ./src/index.html",
     "build": "yarn run type-check && parcel build ./src/index.html --public-url '/'",
     "test": "jest",
-    "type-check": "tsc --noEmit",
-    "type-check:watch": "tsc --noEmit --watch",
+    "type-check": "tsc --noEmit --incremental false",
+    "type-check:watch": "tsc --incremental false --noEmit --watch",
     "lint": "eslint './src/**/*.{ts,tsx}'",
     "lint:fix": "yarn lint --fix",
     "cli": "ts-node src/cli.ts",
@@ -72,6 +73,7 @@
     "normalize.css": "^8.0.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-spring": "^8.0.27",
     "styled-components": "^5.1.0",
     "zustand": "^2.2.3"
   }
