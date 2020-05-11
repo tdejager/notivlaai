@@ -1,7 +1,7 @@
 -- This file should undo anything in `up.sql`
 
-drop VlaaiToOrder;
-drop Order;
-drop Customer;
-drop Vlaai;
+drop table vlaai_to_order;
+drop table `order`;
+drop table customer;
+drop table `vlaai`;
 

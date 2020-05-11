@@ -1,5 +1,5 @@
 table! {
-    Customer (id) {
+    customer (id) {
         id -> Integer,
         first_name -> Text,
         last_name -> Text,
@@ -8,34 +8,30 @@ table! {
 }
 
 table! {
-    Order (id) {
+    order (id) {
         id -> Integer,
         customer_id -> Integer,
     }
 }
 
 table! {
-    Vlaai (id) {
+    vlaai (id) {
         id -> Integer,
         name -> Text,
     }
 }
 
 table! {
-    VlaaiToOrder (id) {
+    vlaai_to_order (id) {
         id -> Integer,
         order_id -> Integer,
         vlaai_id -> Integer,
     }
 }
 
-joinable!(Order -> Customer (customer_id));
-joinable!(VlaaiToOrder -> Order (order_id));
-joinable!(VlaaiToOrder -> Vlaai (vlaai_id));
-
 allow_tables_to_appear_in_same_query!(
-    Customer,
-    Order,
-    Vlaai,
-    VlaaiToOrder,
+    customer,
+    order,
+    vlaai,
+    vlaai_to_order,
 );
