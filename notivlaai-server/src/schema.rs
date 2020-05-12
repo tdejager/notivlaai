@@ -26,6 +26,7 @@ table! {
         id -> Integer,
         order_id -> Integer,
         vlaai_id -> Integer,
+        amount -> Integer,
     }
 }
 

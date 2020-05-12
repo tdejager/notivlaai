@@ -22,6 +22,7 @@ CREATE TABLE vlaai_to_order (
     id INTEGER NOT NULL PRIMARY KEY,
     order_id INTEGER NOT NULL,
     vlaai_id INTEGER NOT NULL,
+    amount INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY(order_id) REFERENCES `Order`(id),
     FOREIGN KEY(vlaai_id) REFERENCES Vlaai(id)
 );
