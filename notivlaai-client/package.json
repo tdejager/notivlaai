@@ -48,7 +48,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint && npm run test"
+      "pre-commit": "yarn lint && npm run test && cargo +nightly t --manifest-path ../notivlaai-server/Cargo.toml"
     }
   },
   "jest": {
