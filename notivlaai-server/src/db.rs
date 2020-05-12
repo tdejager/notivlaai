@@ -97,7 +97,7 @@ mod test {
     pub fn get_client_with_name() {
         let conn = super::establish_connection();
         let results =
-            super::customer_with_name(&conn, "piet").expect("Could not find customer with name");
+            super::customer_with_name(&conn, "pie%").expect("Could not find customer with name");
         assert!(results.len() > 0)
     }
 
