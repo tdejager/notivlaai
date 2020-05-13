@@ -50,8 +50,11 @@ pub fn from_env() -> Config {
 }
 
 fn main() {
+    // Load environment file
     dotenv::dotenv().ok();
+    // Custom config
     rocket::custom(from_env())
+        // Attach the database
         .attach(NotivlaaiDb::fairing())
         .mount(
             "/",

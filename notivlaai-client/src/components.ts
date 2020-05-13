@@ -28,6 +28,7 @@ export const Vlaaien = styled.div`
 
 export const BestellingHeader = styled.h3`
   color: #ebdbb2;
+  text-align: center;
 `;
 
 export const Button = styled.button`

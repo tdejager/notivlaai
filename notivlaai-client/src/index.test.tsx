@@ -30,14 +30,14 @@ describe('App', () => {
     expect.assertions(1);
     const [useStoreHook] = setupStore();
     const div = document.createElement('div');
-    ReactDOM.render(<App useStore={useStoreHook} />, div);
+    ReactDOM.render(<App demo={false} useStore={useStoreHook} />, div);
     expect(true).toBe(true);
   });
 
   it('list should be empty if the store is', () => {
     expect.assertions(2);
     const [useStoreHook] = setupStore();
-    const component = mount(<App useStore={useStoreHook} />);
+    const component = mount(<App demo={false} useStore={useStoreHook} />);
     expect(component.find(OrderContainer)).toHaveLength(1);
     expect(component.find(OrderComponent)).toHaveLength(0);
   });
@@ -48,7 +48,7 @@ describe('App', () => {
     const [useStoreHook, api] = setupStore();
     // Set some test data
     api.setState({ orders: [testData] });
-    const component = mount(<App useStore={useStoreHook} />);
+    const component = mount(<App demo={false} useStore={useStoreHook} />);
     expect(component.find(OrderComponent)).toHaveLength(1);
   });
 
@@ -60,7 +60,7 @@ describe('App', () => {
     api.setState({ orders: [testData] });
 
     // Disable animations so we don't have to wait for the completion
-    const component = mount(<App disableAnimations useStore={useStoreHook} />);
+    const component = mount(<App demo={false} disableAnimations useStore={useStoreHook} />);
     component.find('OrderComponent Button').simulate('click');
     component.update();
     expect(component.find(OrderComponent)).toHaveLength(0);
