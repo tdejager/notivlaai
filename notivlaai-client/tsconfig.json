@@ -1,7 +1,5 @@
-
 {
   "compilerOptions": {
-    "baseUrl": "./src",
     "jsx": "react",
     "typeRoots": ["node_modules/@types"],
     "target": "es5",
@@ -9,7 +7,8 @@
     "module": "esnext",
     "sourceMap": true,
     "moduleResolution": "node",
-    "lib": ["es2017", "dom"]
+    "lib": ["es2017", "dom"],
+    "skipLibCheck": true
   },
   "include": ["src/**/*"]
 }

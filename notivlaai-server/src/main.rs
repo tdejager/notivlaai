@@ -13,6 +13,8 @@ use rocket::{
 };
 use rocket_contrib::serve::StaticFiles;
 use std::collections::HashMap;
+use std::net::TcpListener;
+use tungstenite::server::accept;
 
 mod db;
 mod schema;
@@ -52,6 +54,22 @@ pub fn from_env() -> Config {
 fn main() {
     // Load environment file
     dotenv::dotenv().ok();
+
+    std::thread::spawn(|| {
+        let server = TcpListener::bind("127.0.0.1:9001").unwrap();
+        for stream in server.incoming() {
+            let mut websocket = accept(stream.unwrap()).unwrap();
+            loop {
+                let msg = websocket.read_message().unwrap();
+
+                // We do not want to send back ping/pong messages.
+                if msg.is_binary() || msg.is_text() {
+                    websocket.write_message(msg).unwrap();
+                }
+            }
+        }
+    });
+
     // Custom config
     rocket::custom(from_env())
         // Attach the database
