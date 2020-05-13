@@ -15,6 +15,8 @@ CREATE TABLE customer (
 CREATE TABLE `order` (
     id INTEGER NOT NULL PRIMARY KEY,
     customer_id INTEGER NOT NULL,
+    in_transit BOOLEAN NOT NULL DEFAULT false,
+    picked_up BOOLEAN NOT NULL DEFAULT false,
     FOREIGN KEY(customer_id) REFERENCES Customer(id)
 );
 

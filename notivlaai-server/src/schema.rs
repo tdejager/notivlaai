@@ -11,6 +11,8 @@ table! {
     order (id) {
         id -> Integer,
         customer_id -> Integer,
+        in_transit -> Bool,
+        picked_up -> Bool,
     }
 }
 

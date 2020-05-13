@@ -24,6 +24,8 @@ pub struct Vlaai {
 pub struct Order {
     pub id: i32,
     pub customer_id: i32,
+    pub in_transit: bool,
+    pub picked_up: bool,
 }
 
 #[derive(Associations, Identifiable, Queryable)]
