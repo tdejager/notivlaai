@@ -1,10 +1,10 @@
 import * as React from 'react';
+import { useEffect } from 'react';
 import { UseStore, State } from 'zustand';
-import { OrderType } from './types';
+import { OrderType, VlaaiType } from './types';
 import { OrderComponent } from './OrderComponent';
 import { OrderContainer } from './components';
 import useTimedListener from './Listener';
-import { useEffect } from 'react';
 import createWebSocketWrapper from './createWebSocketWrapper';
 
 interface AppProps {
@@ -21,13 +21,18 @@ export default function App({ demo = false, useStore, disableAnimations }: AppPr
     addOrder: state.addOrder,
   }));
 
+  // Use the demo effect
   if (demo) {
     useTimedListener(addOrder, started, setStarted);
   } else {
+    // Use an actual web socket
     useEffect(() => {
       if (!started) {
         const webSocketWrapper = createWebSocketWrapper('ws://127.0.0.1:9001');
-        webSocketWrapper.onMessage((e) => console.log(e));
+        webSocketWrapper.onMessage((e) => {
+          const order = JSON.parse(e.data) as OrderType;
+          addOrder(order);
+        });
         webSocketWrapper
           .connect()
           .then(() => setStarted(true))

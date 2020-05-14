@@ -59,6 +59,9 @@ export function OrderComponent(props: OrderProps) {
         onRest: onDelivered,
       });
 
+  console.log(order);
+  console.log('rows', order.rows);
+
   const displayOrders = order.rows.map((value) => {
     return <VlaaiDisplay key={value.vlaai.toString()} vlaai={value.vlaai} amount={value.amount} />;
   });
