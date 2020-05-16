@@ -12,17 +12,12 @@ use rocket::{
     Config,
 };
 use rocket_contrib::serve::StaticFiles;
-use serde::Serialize;
+
 use std::collections::HashMap;
-use std::{
-    net::TcpListener,
-    sync::atomic::{AtomicBool, Ordering},
-};
-use tungstenite::server::accept;
-use tungstenite::Message;
 
 mod db;
 mod schema;
+mod ws_updater;
 
 #[database("notivlaai")]
 struct NotivlaaiDb(diesel::SqliteConnection);
@@ -56,76 +51,64 @@ pub fn from_env() -> Config {
         .unwrap()
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct OrderRow {
-    pub vlaai: String,
-    pub amount: u32,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct NotifyOrder {
-    pub id: u32,
-    pub client_name: String,
-    pub rows: Vec<OrderRow>,
-}
-
 fn main() {
     // Load environment file
     dotenv::dotenv().ok();
 
-    let should_close = std::sync::Arc::new(AtomicBool::new(false));
+    // let should_close = std::sync::Arc::new(AtomicBool::new(false));
 
-    let should_close_thread = should_close.clone();
-    let handle = std::thread::spawn(move || {
-        let server = TcpListener::bind("127.0.0.1:9001").unwrap();
-        for stream in server.incoming() {
-            // We should close because we are at the end of the program
-            if should_close_thread.load(Ordering::Relaxed) {
-                break;
-            }
-            println!("Accepting socket connection");
-            let mut websocket = accept(stream.unwrap()).unwrap();
-            let mut order_id = 0u32;
-            loop {
-                // We should close because we are at the end of the program
-                if should_close_thread.load(Ordering::Relaxed) {
-                    break;
-                }
+    // let should_close_thread = should_close.clone();
+    // let handle = std::thread::spawn(move || {
+    //     let server = TcpListener::bind("127.0.0.1:9001").unwrap();
+    //     for stream in server.incoming() {
+    //         // We should close because we are at the end of the program
+    //         if should_close_thread.load(Ordering::Relaxed) {
+    //             break;
+    //         }
+    //         println!("Accepting socket connection");
+    //         let mut websocket = accept(stream.unwrap()).unwrap();
+    //         let mut order_id = 0u32;
+    //         loop {
+    //             // We should close because we are at the end of the program
+    //             if should_close_thread.load(Ordering::Relaxed) {
+    //                 break;
+    //             }
 
-                let json = serde_json::to_string(&NotifyOrder {
-                    client_name: "Tim de Jager".into(),
-                    id: order_id,
-                    rows: vec![OrderRow {
-                        vlaai: "Abrikoos".into(),
-                        amount: 3,
-                    }],
-                })
-                .expect("Could not jsonify data");
+    //             let json = serde_json::to_string(&NotifyOrder {
+    //                 client_name: "Tim de Jager".into(),
+    //                 id: order_id,
+    //                 rows: vec![OrderRow {
+    //                     vlaai: "Abrikoos".into(),
+    //                     amount: 3,
+    //                 }],
+    //             })
+    //             .expect("Could not jsonify data");
 
-                // Try to receive a message
-                websocket
-                    .write_message(Message::text(json))
-                    .expect("Could not send websocket message");
-                let msg = websocket.read_message();
-                order_id += 1;
+    //             // Try to receive a message
+    //             websocket
+    //                 .write_message(Message::text(json))
+    //                 .expect("Could not send websocket message");
+    //             let msg = websocket.read_message();
+    //             order_id += 1;
 
-                match msg {
-                    Ok(_) => {
-                        println!("Connection is ok!");
-                        std::thread::sleep(std::time::Duration::from_millis(1000));
-                    }
-                    // Break if the connection is closed
-                    Err(tungstenite::Error::ConnectionClosed) => {
-                        println!("Connection closed");
-                        break;
-                    }
-                    Err(e) => panic!("An ws error occured: {}", e),
-                }
-            }
-        }
-    });
+    //             match msg {
+    //                 Ok(_) => {
+    //                     println!("Connection is ok!");
+    //                     std::thread::sleep(std::time::Duration::from_millis(1000));
+    //                 }
+    //                 // Break if the connection is closed
+    //                 Err(tungstenite::Error::ConnectionClosed) => {
+    //                     println!("Connection closed");
+    //                     break;
+    //                 }
+    //                 Err(e) => panic!("An ws error occured: {}", e),
+    //             }
+    //         }
+    //     }
+    // });
+
+    let handler = ws_updater::WsUpdater::new(9001);
+    let handle = handler.start();
 
     // Custom config
     rocket::custom(from_env())
@@ -138,6 +121,6 @@ fn main() {
         .mount("/data", routes![index])
         .launch();
 
-    should_close.store(true, Ordering::Relaxed);
+    // should_close.store(true, Ordering::Relaxed);
     handle.join().expect("Cannot join ws thread");
 }

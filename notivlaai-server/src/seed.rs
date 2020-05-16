@@ -41,6 +41,8 @@ fn insert_order(conn: &SqliteConnection, name: &str, vlaaien: &[&str]) {
     diesel::insert_into(schema::order::table)
         .values(NewOrder {
             customer_id: client.id,
+            in_transit: true,
+            picked_up: false,
         })
         .execute(conn)
         .expect("Could not insert order");

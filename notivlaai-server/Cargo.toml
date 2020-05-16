@@ -11,11 +11,14 @@ default-run = "notivlaai-server"
 rocket = "0.4.4"
 rocket_contrib = {version = "0.4", features=["diesel_sqlite_pool"] }
 diesel = { version = "1.4", features = ["sqlite"] }
-dotenv = "0.9.0"
+dotenv = "0.15.0"
 tungstenite = "0.10.1"
+tokio-tungstenite = "0.10"
+futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio-tungstenite = "0.10"
+tokio = { version = "0.2", features = ["full"] }
+ 
 
 [[bin]]
 name = "seed"

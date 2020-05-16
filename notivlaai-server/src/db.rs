@@ -56,6 +56,8 @@ pub struct NewVlaai<'a> {
 #[table_name = "order"]
 pub struct NewOrder {
     pub customer_id: i32,
+    pub in_transit: bool,
+    pub picked_up: bool,
 }
 
 #[derive(Insertable)]
