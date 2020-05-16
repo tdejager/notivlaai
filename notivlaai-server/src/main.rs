@@ -14,7 +14,10 @@ use rocket::{
 use rocket_contrib::serve::StaticFiles;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::net::TcpListener;
+use std::{
+    net::TcpListener,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use tungstenite::server::accept;
 use tungstenite::Message;
 
@@ -72,29 +75,53 @@ fn main() {
     // Load environment file
     dotenv::dotenv().ok();
 
-    std::thread::spawn(|| {
+    let should_close = std::sync::Arc::new(AtomicBool::new(false));
+
+    let should_close_thread = should_close.clone();
+    let handle = std::thread::spawn(move || {
         let server = TcpListener::bind("127.0.0.1:9001").unwrap();
         for stream in server.incoming() {
+            // We should close because we are at the end of the program
+            if should_close_thread.load(Ordering::Relaxed) {
+                break;
+            }
+            println!("Accepting socket connection");
             let mut websocket = accept(stream.unwrap()).unwrap();
             let mut order_id = 0u32;
             loop {
+                // We should close because we are at the end of the program
+                if should_close_thread.load(Ordering::Relaxed) {
+                    break;
+                }
+
                 let json = serde_json::to_string(&NotifyOrder {
                     client_name: "Tim de Jager".into(),
                     id: order_id,
-                    rows: vec![OrderRow{vlaai: "Abrikoos".into(), amount: 3 }],
-                }).expect("Could not jsonify data");
+                    rows: vec![OrderRow {
+                        vlaai: "Abrikoos".into(),
+                        amount: 3,
+                    }],
+                })
+                .expect("Could not jsonify data");
 
                 // Try to receive a message
-                let msg = websocket.write_message(Message::text(json));
+                websocket
+                    .write_message(Message::text(json))
+                    .expect("Could not send websocket message");
+                let msg = websocket.read_message();
                 order_id += 1;
 
                 match msg {
                     Ok(_) => {
+                        println!("Connection is ok!");
                         std::thread::sleep(std::time::Duration::from_millis(1000));
                     }
                     // Break if the connection is closed
-                    Err(tungstenite::Error::ConnectionClosed) => break,
-                    Err(_) => panic!("An ws error occured"),
+                    Err(tungstenite::Error::ConnectionClosed) => {
+                        println!("Connection closed");
+                        break;
+                    }
+                    Err(e) => panic!("An ws error occured: {}", e),
                 }
             }
         }
@@ -110,4 +137,7 @@ fn main() {
         )
         .mount("/data", routes![index])
         .launch();
+
+    should_close.store(true, Ordering::Relaxed);
+    handle.join().expect("Cannot join ws thread");
 }
