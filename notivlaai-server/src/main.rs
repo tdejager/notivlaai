@@ -17,15 +17,11 @@ use std::collections::HashMap;
 
 pub mod db;
 mod schema;
+pub mod status_updater;
 mod ws_updater;
 
-#[database("notivlaai")]
-struct NotivlaaiDb(diesel::SqliteConnection);
-
-#[get("/")]
-fn index(_conn: NotivlaaiDb) -> &'static str {
-    "Hello, world!"
-}
+//#[database("notivlaai")]
+//struct NotivlaaiDb(diesel::SqliteConnection);
 
 /// Create rocket config from environment variables
 pub fn from_env() -> Config {
@@ -57,6 +53,12 @@ pub fn static_file_location() -> String {
         .unwrap_or_else(|_| concat!(env!("CARGO_MANIFEST_DIR"), "/static").to_string())
 }
 
+#[post("/retrieved/<id>")]
+fn order_delivered(id: u32) {
+    let connection = db::establish_connection();
+    db::update_order_retrieved(&connection, id as i32).expect("Could not update order");
+}
+
 fn main() {
     // Load environment file
     dotenv::dotenv().ok();
@@ -67,9 +69,9 @@ fn main() {
     // Custom config
     rocket::custom(from_env())
         // Attach the database
-        .attach(NotivlaaiDb::fairing())
+        //.attach(NotivlaaiDb::fairing())
         .mount("/", StaticFiles::from(static_file_location()))
-        .mount("/data", routes![index])
+        .mount("/orders", routes![order_delivered])
         .launch();
 
     // should_close.store(true, Ordering::Relaxed);

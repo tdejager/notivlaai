@@ -8,17 +8,21 @@ use tungstenite::protocol::Message;
 
 pub struct WsUpdater {
     port: u32,
+    order_status_updater: crate::status_updater::OrderStatusUpdater,
 }
 
 impl WsUpdater {
     pub fn new(port: u32) -> WsUpdater {
-        WsUpdater { port }
+        WsUpdater {
+            port,
+            order_status_updater: crate::status_updater::OrderStatusUpdater::new(),
+        }
     }
 
     pub fn start(self) -> JoinHandle<()> {
         thread::spawn(move || {
             let mut runtime = tokio::runtime::Runtime::new().expect("Could not create runtime");
-            runtime.block_on(async { start_server(self.port).await });
+            runtime.block_on(async { start_server(self.port, self.order_status_updater).await });
         })
     }
 }
@@ -61,20 +65,18 @@ async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
     });
 
     // Retrieve all pending orders
-    let pending =
-        crate::db::all_pending_orders(&conn).expect("Could not get pending orders from database");
     let send_message = async move {
         // Send these over the websocket
-        let json =
-            serde_json::to_string(&pending).expect("Could not serialze pending orders to json");
-        outgoing
-            .send(Message::text(json))
-            .await
-            .expect("Could not send message");
         loop {
-            // TODO update on changes
-            let delay = tokio::time::delay_for(tokio::time::Duration::from_millis(1000));
-            delay.await;
+            let pending = crate::db::all_pending_orders(&conn)
+                .expect("Could not get pending orders from database");
+            let json =
+                serde_json::to_string(&pending).expect("Could not serialze pending orders to json");
+            outgoing
+                .send(Message::text(json))
+                .await
+                .expect("Could not send message");
+            tokio::time::delay_for(tokio::time::Duration::from_millis(100)).await;
         }
     };
 
@@ -84,15 +86,18 @@ async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
     }
 }
 
-async fn start_server(port: u32) {
+async fn start_server(port: u32, updater: crate::status_updater::OrderStatusUpdater) {
     let addr = format!("localhost:{}", port);
+    let updater = std::sync::Arc::new(updater);
+    let cloned_updater = updater.clone();
+
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;
     let mut listener = try_socket.expect("Failed to bind");
     println!("Listening on: {}", addr);
-
     // Let's spawn the handling of each connection in a separate task.
     while let Ok((stream, addr)) = listener.accept().await {
+        let receiver = cloned_updater.subscribe();
         tokio::spawn(handle_connection(stream, addr));
     }
 }

@@ -749,6 +749,7 @@ dependencies = [
  "diesel",
  "dotenv",
  "futures-util",
+ "lazy_static",
  "rocket",
  "rocket_contrib",
  "serde",

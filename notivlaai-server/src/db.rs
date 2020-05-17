@@ -1,6 +1,9 @@
 use crate::schema::*;
+use connection::SimpleConnection;
+use diesel::SqliteConnection;
 use diesel::*;
-use diesel::{Connection, SqliteConnection};
+use lazy_static::lazy_static;
+use r2d2::{ConnectionManager, Pool};
 use serde::Serialize;
 
 #[derive(Associations, Identifiable, Queryable)]
@@ -84,16 +87,62 @@ pub struct PendingOrder {
     pub rows: Vec<OrderRow>,
 }
 
-pub fn establish_connection() -> SqliteConnection {
+#[derive(Debug)]
+pub struct ConnectionOptions {
+    pub enable_foreign_keys: bool,
+    pub busy_timeout: Option<std::time::Duration>,
+}
+
+impl ConnectionOptions {
+    pub fn apply(&self, conn: &SqliteConnection) -> QueryResult<()> {
+        if self.enable_foreign_keys {
+            conn.batch_execute("PRAGMA foreign_keys = ON;")?;
+        }
+        if let Some(duration) = self.busy_timeout {
+            conn.batch_execute(&format!("PRAGMA busy_timeout = {};", duration.as_millis()))?;
+        }
+        Ok(())
+    }
+}
+
+impl Default for ConnectionOptions {
+    fn default() -> Self {
+        Self {
+            enable_foreign_keys: true,
+            busy_timeout: Some(std::time::Duration::from_secs(10)),
+        }
+    }
+}
+
+impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
+    for ConnectionOptions
+{
+    fn on_acquire(&self, conn: &mut SqliteConnection) -> Result<(), diesel::r2d2::Error> {
+        self.apply(conn).map_err(diesel::r2d2::Error::QueryError)
+    }
+}
+
+lazy_static! {
+    /// Create pool singleton
+    static ref POOL: Pool<diesel::r2d2::ConnectionManager<SqliteConnection>> = {
+        let database_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        Pool::builder()
+            .connection_customizer(Box::new(ConnectionOptions::default()))
+            .build(ConnectionManager::<SqliteConnection>::new(database_url))
+            .unwrap()
+    };
+}
+
+/// Create a connection from the connection pool
+pub fn establish_connection(
+) -> diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>> {
     dotenv::dotenv().ok();
 
-    let database_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    SqliteConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+    POOL.get().expect("Could not get connection")
 }
 
 #[allow(dead_code)]
-/// Retreive all pending orders
+/// Retrieve all pending orders
 pub fn all_pending_orders(
     conn: &SqliteConnection,
 ) -> Result<Vec<PendingOrder>, Box<dyn std::error::Error>> {
@@ -154,6 +203,36 @@ pub fn orders_for_customer(
     Ok(Order::belonging_to(&customer).load(conn)?)
 }
 
+#[allow(dead_code)]
+pub fn update_order_in_transit(
+    conn: &SqliteConnection,
+    order_id: i32,
+) -> Result<usize, Box<dyn std::error::Error>> {
+    Ok(diesel::update(order::table.find(order_id))
+        .set((order::in_transit.eq(true), order::picked_up.eq(false)))
+        .execute(conn)?)
+}
+
+#[allow(dead_code)]
+pub fn update_order_retrieved(
+    conn: &SqliteConnection,
+    order_id: i32,
+) -> std::result::Result<usize, Box<dyn std::error::Error>> {
+    Ok(diesel::update(order::table.find(order_id))
+        .set((order::in_transit.eq(true), order::picked_up.eq(false)))
+        .execute(conn)?)
+}
+
+#[allow(dead_code)]
+pub fn update_order_new(
+    conn: &SqliteConnection,
+    order_id: i32,
+) -> std::result::Result<usize, Box<dyn std::error::Error>> {
+    Ok(diesel::update(order::table.find(order_id))
+        .set((order::in_transit.eq(false), order::picked_up.eq(false)))
+        .execute(conn)?)
+}
+
 #[cfg(test)]
 mod test {
 
@@ -179,5 +258,21 @@ mod test {
         let pending_orders =
             super::all_pending_orders(&conn).expect("Could not retreive pending orders");
         assert!(pending_orders.len() > 0)
+    }
+
+    #[test]
+    pub fn updating_order() {
+        let conn = super::establish_connection();
+        assert!(
+            super::update_order_new(&conn, 1).expect("Could not update order to retrieved") > 0
+        );
+        assert!(
+            super::update_order_in_transit(&conn, 1).expect("Could not update order to retrieved")
+                > 0
+        );
+        assert!(
+            super::update_order_retrieved(&conn, 1).expect("Could not update order to retrieved")
+                > 0
+        );
     }
 }
