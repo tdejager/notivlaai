@@ -91,13 +91,15 @@ async fn start_server(port: u32, updater: crate::status_updater::OrderStatusUpda
     let updater = std::sync::Arc::new(updater);
     let cloned_updater = updater.clone();
 
+    tokio::spawn(async move { cloned_updater.run().await });
+
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;
     let mut listener = try_socket.expect("Failed to bind");
     println!("Listening on: {}", addr);
     // Let's spawn the handling of each connection in a separate task.
     while let Ok((stream, addr)) = listener.accept().await {
-        let receiver = cloned_updater.subscribe();
+        let receiver = updater.subscribe();
         tokio::spawn(handle_connection(stream, addr));
     }
 }

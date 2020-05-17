@@ -15,9 +15,9 @@ pub struct OrderStatusUpdater {
     /// Publishes order updates
     publisher: Sender<UpdateOrder>,
     /// synchronous receiver for updating order
-    sync_recv: SyncReceiver<UpdateOrder>,
+    sync_recv: std::sync::Arc<std::sync::Mutex<SyncReceiver<UpdateOrder>>>,
     /// Sender to be able to clone to receive values
-    sync_sender: SyncSender<UpdateOrder>,
+    sync_sender: std::sync::Arc<std::sync::Mutex<SyncSender<UpdateOrder>>>,
 }
 
 pub struct OrderStatusSub {
@@ -34,8 +34,8 @@ impl OrderStatusUpdater {
 
         OrderStatusUpdater {
             publisher: sender,
-            sync_recv,
-            sync_sender,
+            sync_recv: std::sync::Arc::new(std::sync::Mutex::new(sync_recv)),
+            sync_sender: std::sync::Arc::new(std::sync::Mutex::new(sync_sender)),
         }
     }
 
@@ -46,12 +46,19 @@ impl OrderStatusUpdater {
     }
 
     pub fn get_updater(&self) -> SyncSender<UpdateOrder> {
-        self.sync_sender.clone()
+        self.sync_sender
+            .lock()
+            .expect("Could not lock sender")
+            .clone()
     }
 
     pub async fn run(&self) {
         loop {
-            let result = self.sync_recv.try_recv();
+            let result = self
+                .sync_recv
+                .lock()
+                .expect("Could not lock receiver")
+                .try_recv();
             match result {
                 Ok(update_order) => {
                     // Do something here
