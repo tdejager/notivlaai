@@ -1,5 +1,5 @@
 -- Your SQL goes here
-
+PRAGMA foreign_keys = ON;
 CREATE TABLE vlaai (
     id INTEGER NOT NULL PRIMARY KEY,
     name VARCHAR NOT NULL
