@@ -36,7 +36,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
       - name: Install sqlite3
-        run: sudo apt-get install sqlite3 libsqlite3
+        run: sudo apt-get install sqlite3 libsqlite3-dev
       - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with:

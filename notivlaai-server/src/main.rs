@@ -51,6 +51,12 @@ pub fn from_env() -> Config {
         .unwrap()
 }
 
+/// Use the environment variable for static files, otherwise assume it is the project dir
+pub fn static_file_location() -> String {
+    dotenv::var("STATIC_FILES")
+        .unwrap_or_else(|_| concat!(env!("CARGO_MANIFEST_DIR"), "/static").to_string())
+}
+
 fn main() {
     // Load environment file
     dotenv::dotenv().ok();
@@ -62,10 +68,7 @@ fn main() {
     rocket::custom(from_env())
         // Attach the database
         .attach(NotivlaaiDb::fairing())
-        .mount(
-            "/",
-            StaticFiles::from(concat!(env!("CARGO_MANIFEST_DIR"), "/static")),
-        )
+        .mount("/", StaticFiles::from(static_file_location()))
         .mount("/data", routes![index])
         .launch();
 
