@@ -85,6 +85,6 @@ fn main() {
     insert_customer(&conn, "Peter", "Bergmans", "peter@peter.nl");
     insert_customer(&conn, "Piet", "Pokerface", "pokeren@pokerface.nl");
 
-    insert_order(&conn, "Peter", &vec!["Abrikoos", "Kers"]);
-    insert_order(&conn, "Piet", &vec!["Abrikoos", "Kers"]);
+    insert_order(&conn, "Peter", &["Abrikoos", "Kers"]);
+    insert_order(&conn, "Piet", &["Abrikoos", "Kers"]);
 }

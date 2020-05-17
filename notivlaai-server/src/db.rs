@@ -89,9 +89,10 @@ pub fn establish_connection() -> SqliteConnection {
 
     let database_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
     SqliteConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
+#[allow(dead_code)]
 /// Retreive all pending orders
 pub fn all_pending_orders(
     conn: &SqliteConnection,
@@ -133,6 +134,7 @@ pub fn all_pending_orders(
     Ok(pending_orders)
 }
 
+#[allow(dead_code)]
 pub fn customer_with_name<T: AsRef<str>>(
     conn: &SqliteConnection,
     name: T,
@@ -142,6 +144,7 @@ pub fn customer_with_name<T: AsRef<str>>(
         .load(conn)?)
 }
 
+#[allow(dead_code)]
 pub fn orders_for_customer(
     conn: &SqliteConnection,
     id: i32,
