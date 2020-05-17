@@ -42,7 +42,7 @@ const AnimatedOrder = animated(Order);
  */
 export function OrderComponent(props: OrderProps) {
   const { order, onDelivered, disableAnimations } = props;
-  const { clientName } = order;
+  const { customerName } = order;
 
   const [leave, setLeave] = React.useState(false);
 
@@ -59,8 +59,7 @@ export function OrderComponent(props: OrderProps) {
         onRest: onDelivered,
       });
 
-  console.log(order);
-  console.log('rows', order.rows);
+  console.log('ORDER', order);
 
   const displayOrders = order.rows.map((value) => {
     return <VlaaiDisplay key={value.vlaai.toString()} vlaai={value.vlaai} amount={value.amount} />;
@@ -68,7 +67,7 @@ export function OrderComponent(props: OrderProps) {
 
   return (
     <AnimatedOrder style={style}>
-      <BestellingHeader>Bestelling voor {clientName}:</BestellingHeader>
+      <BestellingHeader>Bestelling voor {customerName}:</BestellingHeader>
       <Vlaaien>{displayOrders}</Vlaaien>
       <Button onClick={() => (!disableAnimations ? setLeave(true) : onDelivered())}>
         <span role="img" aria-label="check">

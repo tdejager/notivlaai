@@ -30,6 +30,6 @@ export interface OrderRow {
 
 export interface OrderType {
   id: number;
-  clientName: string;
+  customerName: string;
   rows: Array<OrderRow>;
 }

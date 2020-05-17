@@ -46,6 +46,9 @@ async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
         .expect("Error during the websocket handshake occurred");
     println!("WebSocket connection established: {}", addr);
 
+    // Create a sqlite connection
+    let conn = crate::db::establish_connection();
+
     let (mut outgoing, incoming) = ws_stream.split();
 
     let broadcast_incoming = incoming.try_for_each(|_msg| {
@@ -56,25 +59,20 @@ async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
         // );
         futures_util::future::ready(Ok(()))
     });
-    let send_message = async {
-        let mut order_id = 0;
+
+    // Retrieve all pending orders
+    let pending =
+        crate::db::all_pending_orders(&conn).expect("Could not get pending orders from database");
+    let send_message = async move {
+        // Send these over the websocket
+        let json =
+            serde_json::to_string(&pending).expect("Could not serialze pending orders to json");
+        outgoing
+            .send(Message::text(json))
+            .await
+            .expect("Could not send message");
         loop {
-            let json = serde_json::to_string(&NotifyOrder {
-                client_name: "Tim de Jager".into(),
-                id: order_id,
-                rows: vec![OrderRow {
-                    vlaai: "Abrikoos".into(),
-                    amount: 3,
-                }],
-            })
-            .expect("Could not jsonify data");
-            order_id += 1;
-
-            outgoing
-                .send(Message::text(json))
-                .await
-                .expect("Could not send message");
-
+            // TODO update on changes
             let delay = tokio::time::delay_for(tokio::time::Duration::from_millis(1000));
             delay.await;
         }

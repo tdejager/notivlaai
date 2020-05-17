@@ -15,7 +15,7 @@ use rocket_contrib::serve::StaticFiles;
 
 use std::collections::HashMap;
 
-mod db;
+pub mod db;
 mod schema;
 mod ws_updater;
 

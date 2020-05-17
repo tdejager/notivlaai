@@ -15,9 +15,10 @@ interface AppProps {
 
 export default function App({ demo = false, useStore, disableAnimations }: AppProps) {
   const [started, setStarted] = React.useState(false);
-  const { orders, removeOrder, addOrder } = useStore((state) => ({
+  const { orders, removeOrder, replaceOrders, addOrder } = useStore((state) => ({
     orders: state.orders,
     removeOrder: state.removeOrder,
+    replaceOrders: state.replaceOrders,
     addOrder: state.addOrder,
   }));
 
@@ -30,8 +31,8 @@ export default function App({ demo = false, useStore, disableAnimations }: AppPr
       if (!started) {
         const webSocketWrapper = createWebSocketWrapper('ws://127.0.0.1:9001');
         webSocketWrapper.onMessage((e) => {
-          const order = JSON.parse(e.data) as OrderType;
-          addOrder(order);
+          const pendingOrders = JSON.parse(e.data) as [OrderType];
+          replaceOrders(pendingOrders);
         });
         webSocketWrapper
           .connect()
