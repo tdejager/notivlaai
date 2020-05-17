@@ -46,7 +46,7 @@ jobs:
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
-          command: test --manifest-path ./notivlaai-server
+          command: test
           args:  --manifest-path ./notivlaai-server/Cargo.toml
 
   lints:
@@ -73,5 +73,5 @@ jobs:
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
-          command: clippy --manifest-path ./notivlaai-server
+          command: clippy
           args: --manifest-path ./notivlaai-server/Cargo.toml -- -D warnings
