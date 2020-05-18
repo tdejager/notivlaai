@@ -1,9 +1,9 @@
 use crate::schema::*;
 use connection::SimpleConnection;
+use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::SqliteConnection;
 use diesel::*;
 use lazy_static::lazy_static;
-use r2d2::{ConnectionManager, Pool};
 use serde::Serialize;
 
 #[derive(Associations, Identifiable, Queryable)]

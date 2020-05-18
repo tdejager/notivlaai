@@ -2,7 +2,6 @@ use futures_util::sink::SinkExt;
 use futures_util::{stream::TryStreamExt, StreamExt};
 use serde::Serialize;
 use std::thread;
-use thread::JoinHandle;
 use tokio::net::{TcpListener, TcpStream};
 use tungstenite::protocol::Message;
 
@@ -19,11 +18,8 @@ impl WsUpdater {
         }
     }
 
-    pub fn start(self) -> JoinHandle<()> {
-        thread::spawn(move || {
-            let mut runtime = tokio::runtime::Runtime::new().expect("Could not create runtime");
-            runtime.block_on(async { start_server(self.port, self.order_status_updater).await });
-        })
+    pub async fn start(self) {
+        start_server(self.port, self.order_status_updater).await;
     }
 }
 
