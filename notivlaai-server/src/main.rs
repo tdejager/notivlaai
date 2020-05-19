@@ -1,15 +1,13 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 #[macro_use]
 extern crate diesel;
+
+extern crate pretty_env_logger;
 
 pub mod db;
 mod schema;
 pub mod status_updater;
 mod ws_updater;
-
-//#[database("notivlaai")]
-//struct NotivlaaiDb(diesel::SqliteConnection);
+use warp::Filter;
 
 /// Use the environment variable for static files, otherwise assume it is the project dir
 pub fn static_file_location() -> String {
@@ -18,7 +16,12 @@ pub fn static_file_location() -> String {
 }
 
 async fn warp_main() {
-    warp::serve(warp::fs::dir(static_file_location()))
+    // GET /hi
+    let hi = warp::path("hi").map(|| "Hello, World!");
+    let log = warp::log("static");
+    let static_files = warp::fs::dir("static").with(log);
+
+    warp::serve(hi.or(static_files))
         .run(([127, 0, 0, 1], 3030))
         .await;
 }
@@ -27,12 +30,18 @@ fn main() {
     // Load environment file
     dotenv::dotenv().ok();
 
+    // Initialize the logger
+    pretty_env_logger::init();
+
     let mut runtime = tokio::runtime::Runtime::new().expect("Could not construct runtime");
     let handler = ws_updater::WsUpdater::new(9001);
+
+    // Tokio runtime
     runtime.block_on(async {
+        // Run the web-client
         tokio::spawn(async { warp_main().await });
+
+        // Run the websocket handler
         handler.start().await
     });
-
-    // should_close.store(true, Ordering::Relaxed);
 }

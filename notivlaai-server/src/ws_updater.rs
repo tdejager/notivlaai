@@ -1,5 +1,6 @@
 use futures_util::sink::SinkExt;
 use futures_util::{stream::TryStreamExt, StreamExt};
+use log::info;
 use serde::Serialize;
 use std::thread;
 use tokio::net::{TcpListener, TcpStream};
@@ -39,12 +40,12 @@ struct NotifyOrder {
 }
 
 async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
-    println!("Incoming TCP connection from: {}", addr);
+    info!("Incoming TCP connection from: {}", addr);
 
     let ws_stream = tokio_tungstenite::accept_async(stream)
         .await
         .expect("Error during the websocket handshake occurred");
-    println!("WebSocket connection established: {}", addr);
+    info!("WebSocket connection established: {}", addr);
 
     // Create a sqlite connection
     let conn = crate::db::establish_connection();
@@ -84,18 +85,18 @@ async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
 
 async fn start_server(port: u32, updater: crate::status_updater::OrderStatusUpdater) {
     let addr = format!("localhost:{}", port);
-    let updater = std::sync::Arc::new(updater);
-    let cloned_updater = updater.clone();
+    let (sub, runner) = updater.order_mutator();
 
-    tokio::spawn(async move { cloned_updater.run().await });
+    // Wait for new updates
+    tokio::spawn(async move { runner.run().await });
 
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;
     let mut listener = try_socket.expect("Failed to bind");
-    println!("Listening on: {}", addr);
+    info!("Listening on: {}", addr);
     // Let's spawn the handling of each connection in a separate task.
     while let Ok((stream, addr)) = listener.accept().await {
-        let receiver = updater.subscribe();
+        let receiver = sub.subscribe();
         tokio::spawn(handle_connection(stream, addr));
     }
 }
