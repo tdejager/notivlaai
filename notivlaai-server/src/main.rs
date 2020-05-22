@@ -3,7 +3,7 @@ extern crate diesel;
 
 extern crate pretty_env_logger;
 
-pub mod db;
+mod db;
 mod schema;
 pub mod status_updater;
 mod ws_updater;

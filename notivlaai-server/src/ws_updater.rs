@@ -81,15 +81,14 @@ async fn handle_connection(
                 break;
             }
             // Otherwise just go on
-            match message {
-                Ok(value) => outgoing
+            if let Ok(value) = message {
+                outgoing
                     .send(Message::text(
                         serde_json::to_string(&value).expect("Could not convert update to json"),
                     ))
                     .await
-                    .expect("Could not send update"),
-                _ => {}
-            }
+                    .expect("Could not send update");
+            };
         }
     };
 

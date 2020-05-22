@@ -99,10 +99,12 @@ impl<T: Backend> OrderRunner<T> {
                 let value = match value {
                     UpdateOrder::OrderRetrieved(id) => {
                         self.backend.order_retrieved(id)?;
+                        // Remove this order from the screen
                         OrderPublish::RemoveOrder(id)
                     }
                     UpdateOrder::OrderInTransit(id) => {
                         let order = self.backend.order_in_transit(id)?;
+                        // Add a new order to the screen
                         OrderPublish::AddOrder(self.backend.to_pending(order)?)
                     }
                 };

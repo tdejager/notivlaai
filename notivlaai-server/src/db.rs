@@ -192,6 +192,7 @@ pub fn all_pending_orders(
     Ok(pending_orders)
 }
 
+#[allow(dead_code)]
 /// Convert an existing order to a pending one
 pub fn to_pending(
     conn: &SqliteConnection,
