@@ -8,3 +8,7 @@ This is a small web application that should contain the following pages
 
 Because this is in context of the yearly 'vlaaienactie' (a vlaai being a dutch kind of pastry), the order will be a collection of
 these vlaaien
+
+# After cloning
+
+To not modify the default seeded sqlite db use `--skip-worktree`: `git update-index --skip-worktree notivlaai.sqlite3`
