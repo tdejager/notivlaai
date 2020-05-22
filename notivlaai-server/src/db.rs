@@ -22,7 +22,7 @@ pub struct Vlaai {
     pub name: String,
 }
 
-#[derive(Associations, Identifiable, Queryable)]
+#[derive(Associations, Identifiable, Queryable, Copy, Clone)]
 #[belongs_to(Customer)]
 #[table_name = "order"]
 pub struct Order {
@@ -72,14 +72,14 @@ pub struct NewVlaaiToOrder {
     pub amount: i32,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderRow {
     pub vlaai: String,
     pub amount: u32,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PendingOrder {
     pub id: u32,
@@ -122,6 +122,8 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
     }
 }
 
+pub type PooledConnection =
+    diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>;
 lazy_static! {
     /// Create pool singleton
     static ref POOL: Pool<diesel::r2d2::ConnectionManager<SqliteConnection>> = {
@@ -134,18 +136,29 @@ lazy_static! {
 }
 
 /// Create a connection from the connection pool
-pub fn establish_connection(
-) -> diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>> {
+pub fn establish_connection() -> PooledConnection {
     dotenv::dotenv().ok();
 
     POOL.get().expect("Could not get connection")
+}
+
+/// Get the name of a vlaai for a specific id
+pub fn get_vlaai_name(
+    conn: &SqliteConnection,
+    vlaai_id: i32,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let vlaai_name: String = vlaai::table
+        .find(vlaai_id)
+        .select(vlaai::name)
+        .get_result(conn)?;
+    Ok(vlaai_name)
 }
 
 #[allow(dead_code)]
 /// Retrieve all pending orders
 pub fn all_pending_orders(
     conn: &SqliteConnection,
-) -> Result<Vec<PendingOrder>, Box<dyn std::error::Error>> {
+) -> Result<Vec<PendingOrder>, Box<dyn std::error::Error + Send + Sync>> {
     // Get all orders in transit
     let orders: Vec<Order> = order::table.filter(order::in_transit.eq(true)).load(conn)?;
 
@@ -168,12 +181,8 @@ pub fn all_pending_orders(
 
         // Fill in the order rows
         for order_row in order_rows {
-            let vlaai_name: String = vlaai::table
-                .find(order_row.vlaai_id)
-                .select(vlaai::name)
-                .get_result(conn)?;
             pending_order.rows.push(OrderRow {
-                vlaai: vlaai_name,
+                vlaai: get_vlaai_name(conn, order_row.vlaai_id)?,
                 amount: order_row.amount as u32,
             });
         }
@@ -181,6 +190,34 @@ pub fn all_pending_orders(
     }
 
     Ok(pending_orders)
+}
+
+/// Convert an existing order to a pending one
+pub fn to_pending(
+    conn: &SqliteConnection,
+    order: Order,
+) -> Result<PendingOrder, Box<dyn std::error::Error + Send + Sync>> {
+    let customer = customer::table
+        .find(order.customer_id)
+        .get_result::<Customer>(conn)?;
+
+    let order_rows = vlaai_to_order::table
+        .filter(vlaai_to_order::order_id.eq(order.id))
+        .load::<VlaaiToOrder>(conn)?
+        .into_iter()
+        .map(|v| {
+            get_vlaai_name(conn, v.vlaai_id).map(|name| OrderRow {
+                vlaai: name,
+                amount: v.amount as u32,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>();
+
+    Ok(PendingOrder {
+        id: order.id as u32,
+        customer_name: format!("{} {}", customer.first_name, customer.last_name),
+        rows: order_rows?,
+    })
 }
 
 #[allow(dead_code)]
@@ -207,17 +244,18 @@ pub fn orders_for_customer(
 pub fn update_order_in_transit(
     conn: &SqliteConnection,
     order_id: i32,
-) -> Result<usize, Box<dyn std::error::Error>> {
-    Ok(diesel::update(order::table.find(order_id))
+) -> Result<Order, Box<dyn std::error::Error + Send + Sync>> {
+    diesel::update(order::table.find(order_id))
         .set((order::in_transit.eq(true), order::picked_up.eq(false)))
-        .execute(conn)?)
+        .execute(conn)?;
+    Ok(order::table.find(order_id).get_result(conn)?)
 }
 
 #[allow(dead_code)]
 pub fn update_order_retrieved(
     conn: &SqliteConnection,
     order_id: i32,
-) -> std::result::Result<usize, Box<dyn std::error::Error>> {
+) -> std::result::Result<usize, Box<dyn std::error::Error + Send + Sync>> {
     Ok(diesel::update(order::table.find(order_id))
         .set((order::in_transit.eq(true), order::picked_up.eq(false)))
         .execute(conn)?)
@@ -236,6 +274,7 @@ pub fn update_order_new(
 #[cfg(test)]
 mod test {
 
+    use diesel::*;
     #[test]
     pub fn get_client_with_name() {
         let conn = super::establish_connection();
@@ -263,15 +302,27 @@ mod test {
     #[test]
     pub fn updating_order() {
         let conn = super::establish_connection();
+        // Change to new
         assert!(super::update_order_new(&conn, 1).expect("Could not update order to be new") > 0);
+        // Set to retrieved
         assert!(
             super::update_order_retrieved(&conn, 1).expect("Could not update order to retrieved")
                 > 0
         );
-        assert!(
-            super::update_order_in_transit(&conn, 1)
-                .expect("Could not update order to be in transit")
-                > 0
-        );
+        // Set to status as in seed and return
+        assert!(super::update_order_in_transit(&conn, 1).is_ok());
+    }
+
+    #[test]
+    pub fn pending() {
+        let conn = super::establish_connection();
+        assert!(super::to_pending(
+            &conn,
+            super::order::table
+                .find(1)
+                .get_result(&conn)
+                .expect("Could not find order")
+        )
+        .is_ok())
     }
 }
