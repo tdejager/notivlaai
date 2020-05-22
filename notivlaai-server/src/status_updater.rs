@@ -32,10 +32,7 @@ impl OrderRunner {
         loop {
             while let Some(value) = self.receiver.recv().await {
                 // Do nothing in case of ok or an error, just keep on sending
-                match self.publisher.send(value) {
-                    Ok(_) => {}
-                    Err(_) => {}
-                }
+                if let Ok(_) = self.publisher.send(value) {}
             }
         }
     }
