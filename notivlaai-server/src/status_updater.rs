@@ -59,8 +59,6 @@ impl OrderStatusUpdater {
         // This is the async channel
         let (sender, _) = channel(100);
 
-        let (internal_sender, receiver) = tokio::sync::mpsc::channel(100);
-
         OrderStatusUpdater {
             publisher: sender,
             receiver,

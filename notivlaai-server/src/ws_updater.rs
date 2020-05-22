@@ -91,7 +91,7 @@ async fn start_server(port: u32, subscriber: OrderSubscriber, runner: OrderRunne
     info!("Listening on: {}", addr);
     // Let's spawn the handling of each connection in a separate task.
     while let Ok((stream, addr)) = listener.accept().await {
-        let receiver = subscriber.subscribe();
+        let _receiver = subscriber.subscribe();
         tokio::spawn(handle_connection(stream, addr));
     }
 }

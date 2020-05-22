@@ -32,7 +32,7 @@ enum UpdateResponse {
 }
 
 /// Updating an order
-fn update_order(sender: Sender<UpdateOrder>) -> warp::reply::Json {
+fn update_order(_sender: Sender<UpdateOrder>) -> warp::reply::Json {
     warp::reply::json(&UpdateResponse::OK)
 }
 
