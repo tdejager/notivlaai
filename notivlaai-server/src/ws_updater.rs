@@ -1,26 +1,22 @@
+use crate::status_updater::{OrderRunner, OrderSubscriber};
 use futures_util::sink::SinkExt;
 use futures_util::{stream::TryStreamExt, StreamExt};
 use log::info;
 use serde::Serialize;
-use std::thread;
 use tokio::net::{TcpListener, TcpStream};
 use tungstenite::protocol::Message;
 
 pub struct WsUpdater {
     port: u32,
-    order_status_updater: crate::status_updater::OrderStatusUpdater,
 }
 
 impl WsUpdater {
     pub fn new(port: u32) -> WsUpdater {
-        WsUpdater {
-            port,
-            order_status_updater: crate::status_updater::OrderStatusUpdater::new(),
-        }
+        WsUpdater { port }
     }
 
-    pub async fn start(self) {
-        start_server(self.port, self.order_status_updater).await;
+    pub async fn start(self, subscriber: OrderSubscriber, runner: OrderRunner) {
+        start_server(self.port, subscriber, runner).await;
     }
 }
 
@@ -83,9 +79,8 @@ async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
     }
 }
 
-async fn start_server(port: u32, updater: crate::status_updater::OrderStatusUpdater) {
+async fn start_server(port: u32, subscriber: OrderSubscriber, runner: OrderRunner) {
     let addr = format!("localhost:{}", port);
-    let (sub, runner) = updater.order_mutator();
 
     // Wait for new updates
     tokio::spawn(async move { runner.run().await });
@@ -96,7 +91,7 @@ async fn start_server(port: u32, updater: crate::status_updater::OrderStatusUpda
     info!("Listening on: {}", addr);
     // Let's spawn the handling of each connection in a separate task.
     while let Ok((stream, addr)) = listener.accept().await {
-        let receiver = sub.subscribe();
+        let receiver = subscriber.subscribe();
         tokio::spawn(handle_connection(stream, addr));
     }
 }

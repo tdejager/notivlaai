@@ -16,16 +16,12 @@ pub struct OrderStatusUpdater {
     publisher: Sender<UpdateOrder>,
     /// Receives order updates to process
     receiver: mpsc::Receiver<UpdateOrder>,
-    /// Sender to clone, for the receiver
-    internal_sender: mpsc::Sender<UpdateOrder>,
 }
 
 /// Keep running to collect orders
 pub struct OrderRunner {
     /// Receives order updates to process
     receiver: mpsc::Receiver<UpdateOrder>,
-    /// Sender so that a sender is always connected to a receiver
-    internal_sender: mpsc::Sender<UpdateOrder>,
     /// Publishes order updates
     publisher: Sender<UpdateOrder>,
 }
@@ -59,7 +55,7 @@ impl OrderSubscriber {
 }
 
 impl OrderStatusUpdater {
-    pub fn new() -> OrderStatusUpdater {
+    pub fn new(receiver: mpsc::Receiver<UpdateOrder>) -> OrderStatusUpdater {
         // This is the async channel
         let (sender, _) = channel(100);
 
@@ -68,12 +64,12 @@ impl OrderStatusUpdater {
         OrderStatusUpdater {
             publisher: sender,
             receiver,
-            internal_sender,
         }
     }
 
     /// Subscribe to get order mutator
     /// can send messages to mutate orders in the database
+    /// and provides a struct that gives out subscriptions
     pub fn order_mutator(self) -> (OrderSubscriber, OrderRunner) {
         // Create a subscriber part
         let sub = OrderSubscriber {
@@ -83,11 +79,8 @@ impl OrderStatusUpdater {
         // Create a runner part
         let runner = OrderRunner {
             receiver: self.receiver,
-            internal_sender: self.internal_sender,
             publisher: self.publisher,
         };
         (sub, runner)
     }
-
-    pub fn runner(&mut self) {}
 }
