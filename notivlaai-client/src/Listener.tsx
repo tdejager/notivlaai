@@ -12,7 +12,7 @@ export default function useTimedListener(
     if (!started) {
       const testData: OrderType = {
         id: 0,
-        clientName: 'Tim de Jager',
+        customerName: 'Tim de Jager',
         rows: [
           {
             vlaai: VlaaiType.Kers,
@@ -26,7 +26,7 @@ export default function useTimedListener(
       };
 
       const test2 = { ...testData };
-      test2.clientName = 'Saskia Winkeler';
+      test2.customerName = 'Saskia Winkeler';
       test2.id = 1;
       // Add the first order
       addOrder(testData);

@@ -12,7 +12,7 @@ Enzyme.configure({ adapter: new Adapter() });
 
 const testData: OrderType = {
   id: 0,
-  clientName: 'Tim de Jager',
+  customerName: 'Tim de Jager',
   rows: [
     {
       vlaai: VlaaiType.Kers,

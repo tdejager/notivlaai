@@ -1,29 +1,22 @@
+use crate::status_updater::{OrderRunner, OrderSubscriber};
 use futures_util::sink::SinkExt;
 use futures_util::{stream::TryStreamExt, StreamExt};
+use log::info;
 use serde::Serialize;
-use std::thread;
-use thread::JoinHandle;
 use tokio::net::{TcpListener, TcpStream};
 use tungstenite::protocol::Message;
 
 pub struct WsUpdater {
     port: u32,
-    order_status_updater: crate::status_updater::OrderStatusUpdater,
 }
 
 impl WsUpdater {
     pub fn new(port: u32) -> WsUpdater {
-        WsUpdater {
-            port,
-            order_status_updater: crate::status_updater::OrderStatusUpdater::new(),
-        }
+        WsUpdater { port }
     }
 
-    pub fn start(self) -> JoinHandle<()> {
-        thread::spawn(move || {
-            let mut runtime = tokio::runtime::Runtime::new().expect("Could not create runtime");
-            runtime.block_on(async { start_server(self.port, self.order_status_updater).await });
-        })
+    pub async fn start(self, subscriber: OrderSubscriber, runner: OrderRunner) {
+        start_server(self.port, subscriber, runner).await;
     }
 }
 
@@ -43,12 +36,12 @@ struct NotifyOrder {
 }
 
 async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
-    println!("Incoming TCP connection from: {}", addr);
+    info!("Incoming TCP connection from: {}", addr);
 
     let ws_stream = tokio_tungstenite::accept_async(stream)
         .await
         .expect("Error during the websocket handshake occurred");
-    println!("WebSocket connection established: {}", addr);
+    info!("WebSocket connection established: {}", addr);
 
     // Create a sqlite connection
     let conn = crate::db::establish_connection();
@@ -86,20 +79,19 @@ async fn handle_connection(stream: TcpStream, addr: std::net::SocketAddr) {
     }
 }
 
-async fn start_server(port: u32, updater: crate::status_updater::OrderStatusUpdater) {
+async fn start_server(port: u32, subscriber: OrderSubscriber, runner: OrderRunner) {
     let addr = format!("localhost:{}", port);
-    let updater = std::sync::Arc::new(updater);
-    let cloned_updater = updater.clone();
 
-    tokio::spawn(async move { cloned_updater.run().await });
+    // Wait for new updates
+    tokio::spawn(async move { runner.run().await });
 
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;
     let mut listener = try_socket.expect("Failed to bind");
-    println!("Listening on: {}", addr);
+    info!("Listening on: {}", addr);
     // Let's spawn the handling of each connection in a separate task.
     while let Ok((stream, addr)) = listener.accept().await {
-        let receiver = updater.subscribe();
+        let _receiver = subscriber.subscribe();
         tokio::spawn(handle_connection(stream, addr));
     }
 }

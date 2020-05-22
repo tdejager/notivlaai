@@ -1,4 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
 use db::{NewCustomer, NewOrder, NewVlaai, NewVlaaiToOrder};
 use diesel::prelude::*;
 use diesel::{QueryDsl, RunQueryDsl, SqliteConnection};
