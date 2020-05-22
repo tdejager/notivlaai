@@ -1,5 +1,4 @@
 use crate::db;
-use serde::Serialize;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::sync::mpsc;
 
@@ -13,7 +12,7 @@ pub enum UpdateOrder {
 }
 
 /// This enum signifies published changes to the order
-#[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub enum OrderPublish {
     /// Add an order to the screen
     AddOrder(db::PendingOrder),

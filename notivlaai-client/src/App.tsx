@@ -6,12 +6,27 @@ import { OrderComponent } from './OrderComponent';
 import { OrderContainer } from './components';
 import useTimedListener from './Listener';
 import createWebSocketWrapper from './createWebSocketWrapper';
+import { NotivlaaiStore } from './store';
 
 interface AppProps {
-  useStore: UseStore<State>;
+  useStore: UseStore<NotivlaaiStore>;
   demo?: boolean;
   disableAnimations?: boolean;
 }
+
+interface InitializeMessage {
+  initialize: [OrderType];
+}
+
+interface AddOrder {
+  addOrder: OrderType;
+}
+
+interface RemoveOrder {
+  removeOrder: OrderType;
+}
+
+type AllMessages = InitializeMessage | AddOrder | RemoveOrder;
 
 export default function App({ demo = false, useStore, disableAnimations }: AppProps) {
   const [started, setStarted] = React.useState(false);
@@ -31,8 +46,12 @@ export default function App({ demo = false, useStore, disableAnimations }: AppPr
       if (!started) {
         const webSocketWrapper = createWebSocketWrapper('ws://127.0.0.1:9001');
         webSocketWrapper.onMessage((e) => {
-          const pendingOrders = JSON.parse(e.data) as [OrderType];
-          replaceOrders(pendingOrders);
+          const data = JSON.parse(e.data);
+          console.log(data);
+          if ('initialize' in Object.keys(data)) {
+            const message = data as InitializeMessage;
+            replaceOrders(message.initialize);
+          }
         });
         webSocketWrapper
           .connect()

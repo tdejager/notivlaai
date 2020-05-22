@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { OrderType } from './types';
 
-interface NotivlaaiStore {
+export interface NotivlaaiStore {
   orders: Array<OrderType>;
   addOrder: (order: OrderType) => void;
   removeOrder: (order: OrderType) => void;

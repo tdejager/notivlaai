@@ -1,3 +1,4 @@
+use crate::db;
 use crate::status_updater::{DBBackend, OrderPublish, OrderRunner, OrderSubscriber};
 use futures_util::sink::SinkExt;
 use futures_util::{stream::TryStreamExt, StreamExt};
@@ -23,19 +24,25 @@ impl WsUpdater {
     }
 }
 
-#[derive(Serialize)]
+/// This is an enum that is sent to the typescript side
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct OrderRow {
-    pub vlaai: String,
-    pub amount: u32,
+pub enum OrderNotification {
+    /// Initialize with all pending orders
+    Initialize(Vec<db::PendingOrder>),
+    /// Add an order
+    AddOrder(db::PendingOrder),
+    /// Remove an order
+    RemoveOrder(u32),
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct NotifyOrder {
-    pub id: u32,
-    pub client_name: String,
-    pub rows: Vec<OrderRow>,
+impl From<OrderPublish> for OrderNotification {
+    fn from(pubish: OrderPublish) -> Self {
+        match pubish {
+            OrderPublish::AddOrder(p) => OrderNotification::AddOrder(p),
+            OrderPublish::RemoveOrder(idx) => OrderNotification::RemoveOrder(idx),
+        }
+    }
 }
 
 async fn handle_connection(
@@ -66,7 +73,8 @@ async fn handle_connection(
 
     let pending =
         crate::db::all_pending_orders(&conn).expect("Could not get pending orders from database");
-    let json = serde_json::to_string(&pending).expect("Could not serialze pending orders to json");
+    let json = serde_json::to_string(&OrderNotification::Initialize(pending))
+        .expect("Could not serialze pending orders to json");
     outgoing
         .send(Message::text(json))
         .await
@@ -84,7 +92,8 @@ async fn handle_connection(
             if let Ok(value) = message {
                 outgoing
                     .send(Message::text(
-                        serde_json::to_string(&value).expect("Could not convert update to json"),
+                        serde_json::to_string(&OrderNotification::from(value))
+                            .expect("Could not convert update to json"),
                     ))
                     .await
                     .expect("Could not send update");
