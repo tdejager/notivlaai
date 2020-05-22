@@ -263,15 +263,14 @@ mod test {
     #[test]
     pub fn updating_order() {
         let conn = super::establish_connection();
+        assert!(super::update_order_new(&conn, 1).expect("Could not update order to be new") > 0);
         assert!(
-            super::update_order_new(&conn, 1).expect("Could not update order to retrieved") > 0
-        );
-        assert!(
-            super::update_order_in_transit(&conn, 1).expect("Could not update order to retrieved")
+            super::update_order_retrieved(&conn, 1).expect("Could not update order to retrieved")
                 > 0
         );
         assert!(
-            super::update_order_retrieved(&conn, 1).expect("Could not update order to retrieved")
+            super::update_order_in_transit(&conn, 1)
+                .expect("Could not update order to be in transit")
                 > 0
         );
     }
