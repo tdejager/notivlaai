@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useEffect } from 'react';
-import { UseStore, State } from 'zustand';
-import { OrderType, VlaaiType } from './types';
+import { UseStore } from 'zustand';
+import { OrderType } from './types';
 import { OrderComponent } from './OrderComponent';
 import { OrderContainer } from './components';
 import useTimedListener from './Listener';
@@ -14,19 +14,43 @@ interface AppProps {
   disableAnimations?: boolean;
 }
 
-interface InitializeMessage {
+type InitializeMessage = {
   initialize: [OrderType];
-}
+};
 
-interface AddOrder {
+interface AddOrderMessage {
   addOrder: OrderType;
 }
 
-interface RemoveOrder {
-  removeOrder: OrderType;
+interface RemoveOrderMessage {
+  removeOrder: number;
 }
 
-type AllMessages = InitializeMessage | AddOrder | RemoveOrder;
+type AllMessage = InitializeMessage | AddOrderMessage | RemoveOrderMessage;
+
+/**
+ * Type guard for initialize message
+ */
+function isInitialize(message: AllMessage): message is InitializeMessage {
+  if ((message as InitializeMessage).initialize) return true;
+  return false;
+}
+
+/**
+ * Type guard for adding order message
+ */
+function isAddOrder(message: AllMessage): message is AddOrderMessage {
+  if ((message as AddOrderMessage).addOrder) return true;
+  return false;
+}
+
+/**
+ * Type guard for removing order message
+ */
+function isRemoveOrder(message: AllMessage): message is RemoveOrderMessage {
+  if ((message as RemoveOrderMessage).removeOrder) return true;
+  return false;
+}
 
 export default function App({ demo = false, useStore, disableAnimations }: AppProps) {
   const [started, setStarted] = React.useState(false);
@@ -46,12 +70,14 @@ export default function App({ demo = false, useStore, disableAnimations }: AppPr
       if (!started) {
         const webSocketWrapper = createWebSocketWrapper('ws://127.0.0.1:9001');
         webSocketWrapper.onMessage((e) => {
-          const data = JSON.parse(e.data);
-          console.log(data);
-          if ('initialize' in Object.keys(data)) {
-            const message = data as InitializeMessage;
-            replaceOrders(message.initialize);
-          }
+          const messageJson = JSON.parse(e.data);
+          // Add an order to the store when requested
+          if (isAddOrder(messageJson)) addOrder(messageJson.addOrder);
+          // Initialize the list of orders when requested
+          else if (isInitialize(messageJson)) replaceOrders(messageJson.initialize);
+          // Remove an order when requested
+          else if (isRemoveOrder(messageJson)) removeOrder(messageJson.removeOrder);
+          else throw new Error('Cannot decode web-socket message');
         });
         webSocketWrapper
           .connect()
@@ -65,7 +91,7 @@ export default function App({ demo = false, useStore, disableAnimations }: AppPr
     <OrderComponent
       key={value.id}
       order={value}
-      onDelivered={() => removeOrder(value)}
+      onDelivered={() => removeOrder(value.id)}
       disableAnimations={disableAnimations}
     />
   ));

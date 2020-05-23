@@ -10,6 +10,7 @@ use tokio::{
 };
 use tungstenite::protocol::Message;
 
+/// Update the order screen using websockets
 pub struct WsUpdater {
     port: u32,
 }
