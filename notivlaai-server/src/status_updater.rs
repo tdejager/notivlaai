@@ -1,4 +1,5 @@
 use crate::db;
+use std::collections::HashMap;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::sync::mpsc;
 
@@ -13,7 +14,7 @@ pub enum UpdateOrder {
 }
 
 /// This enum signifies published changes to the order
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OrderPublish {
     /// Add an order to the screen
     AddOrder(db::PendingOrder),
@@ -72,6 +73,54 @@ impl Backend for DBBackend {
     }
 }
 
+pub struct TestBackend {
+    orders: HashMap<u32, db::Order>,
+}
+
+impl Default for TestBackend {
+    fn default() -> Self {
+        let mut map = HashMap::new();
+        map.insert(
+            1,
+            db::Order {
+                id: 1,
+                customer_id: 1,
+                in_transit: false,
+                picked_up: false,
+            },
+        );
+        Self { orders: map }
+    }
+}
+
+// Backend for simple testing
+impl Backend for TestBackend {
+    fn order_in_transit(
+        &mut self,
+        id: u32,
+    ) -> Result<db::Order, Box<dyn std::error::Error + Send + Sync>> {
+        let order = self.orders.get_mut(&id).ok_or("Not there")?;
+        order.picked_up = false;
+        order.in_transit = true;
+        Ok(*order)
+    }
+    fn order_retrieved(&mut self, id: u32) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let order = self.orders.get_mut(&id).ok_or("Not there")?;
+        order.picked_up = true;
+        order.in_transit = false;
+        Ok(())
+    }
+    fn to_pending(
+        &self,
+        order: db::Order,
+    ) -> Result<db::PendingOrder, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(db::PendingOrder {
+            id: order.id as u32,
+            customer_name: "Piet".to_string(),
+            rows: Default::default(),
+        })
+    }
+}
 pub struct OrderStatusUpdater<T> {
     /// Publishes order updates
     publisher: Sender<OrderPublish>,
@@ -94,25 +143,24 @@ pub struct OrderRunner<T> {
 impl<T: Backend> OrderRunner<T> {
     /// Receive updates and publishes these over the broadcaster
     pub async fn run(mut self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        loop {
-            while let Some(value) = self.receiver.recv().await {
-                log::info!("Got message {:?}", value);
-                let value = match value {
-                    UpdateOrder::OrderRetrieved(id) => {
-                        self.backend.order_retrieved(id)?;
-                        // Remove this order from the screen
-                        OrderPublish::RemoveOrder(id)
-                    }
-                    UpdateOrder::OrderInTransit(id) => {
-                        let order = self.backend.order_in_transit(id)?;
-                        // Add a new order to the screen
-                        OrderPublish::AddOrder(self.backend.to_pending(order)?)
-                    }
-                };
-                // Do nothing in case of ok or an error, just keep on sending
-                if self.publisher.send(value).is_ok() {}
-            }
+        while let Some(value) = self.receiver.recv().await {
+            log::info!("Got message {:?}", value);
+            let value = match value {
+                UpdateOrder::OrderRetrieved(id) => {
+                    self.backend.order_retrieved(id)?;
+                    // Remove this order from the screen
+                    OrderPublish::RemoveOrder(id)
+                }
+                UpdateOrder::OrderInTransit(id) => {
+                    let order = self.backend.order_in_transit(id)?;
+                    // Add a new order to the screen
+                    OrderPublish::AddOrder(self.backend.to_pending(order)?)
+                }
+            };
+            // Do nothing in case of ok or an error, just keep on sending
+            if self.publisher.send(value).is_ok() {}
         }
+        Ok(())
     }
 }
 
@@ -164,61 +212,7 @@ impl<T: Backend + Default> OrderStatusUpdater<T> {
 #[cfg(test)]
 mod tests {
 
-    use super::UpdateOrder;
-    use crate::db;
-    use std::collections::HashMap;
-
-    struct TestBackend {
-        orders: HashMap<u32, db::Order>,
-    }
-
-    impl Default for TestBackend {
-        fn default() -> Self {
-            let mut map = HashMap::new();
-            map.insert(
-                1,
-                db::Order {
-                    id: 1,
-                    customer_id: 1,
-                    in_transit: false,
-                    picked_up: false,
-                },
-            );
-            Self { orders: map }
-        }
-    }
-
-    // Backend for simple testing
-    impl super::Backend for TestBackend {
-        fn order_in_transit(
-            &mut self,
-            id: u32,
-        ) -> Result<db::Order, Box<dyn std::error::Error + Send + Sync>> {
-            let order = self.orders.get_mut(&id).ok_or("Not there")?;
-            order.picked_up = false;
-            order.in_transit = true;
-            Ok(*order)
-        }
-        fn order_retrieved(
-            &mut self,
-            id: u32,
-        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            let order = self.orders.get_mut(&id).ok_or("Not there")?;
-            order.picked_up = true;
-            order.in_transit = false;
-            Ok(())
-        }
-        fn to_pending(
-            &self,
-            order: db::Order,
-        ) -> Result<db::PendingOrder, Box<dyn std::error::Error + Send + Sync>> {
-            Ok(db::PendingOrder {
-                id: order.id as u32,
-                customer_name: "Piet".to_string(),
-                rows: Default::default(),
-            })
-        }
-    }
+    use super::{TestBackend, UpdateOrder};
 
     #[tokio::test]
     async fn test_update() {

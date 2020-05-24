@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useEffect } from 'react';
 import { UseStore } from 'zustand';
+import { useTransition, animated } from 'react-spring';
 import { OrderType } from './types';
 import { OrderComponent } from './OrderComponent';
 import { OrderContainer } from './components';
@@ -11,6 +12,8 @@ import { NotivlaaiStore } from './store';
 interface AppProps {
   useStore: UseStore<NotivlaaiStore>;
   demo?: boolean;
+  // Is this running in a test?
+  isTest?: boolean;
   disableAnimations?: boolean;
 }
 
@@ -52,7 +55,12 @@ function isRemoveOrder(message: AllMessage): message is RemoveOrderMessage {
   return false;
 }
 
-export default function App({ demo = false, useStore, disableAnimations }: AppProps) {
+export default function App({
+  demo = false,
+  isTest = false,
+  useStore,
+  disableAnimations,
+}: AppProps) {
   const [started, setStarted] = React.useState(false);
   const { orders, removeOrder, replaceOrders, addOrder } = useStore((state) => ({
     orders: state.orders,
@@ -64,8 +72,8 @@ export default function App({ demo = false, useStore, disableAnimations }: AppPr
   // Use the demo effect
   if (demo) {
     useTimedListener(addOrder, started, setStarted);
-  } else {
-    // Use an actual web socket
+  } else if (!isTest) {
+    // Use an actual web socket, we are not in demo and not in test
     useEffect(() => {
       if (!started) {
         const webSocketWrapper = createWebSocketWrapper('ws://127.0.0.1:9001');
@@ -87,13 +95,27 @@ export default function App({ demo = false, useStore, disableAnimations }: AppPr
     }, [started]);
   }
 
-  const allOrders = orders.map((value: OrderType) => (
-    <OrderComponent
-      key={value.id}
-      order={value}
-      onDelivered={() => removeOrder(value.id)}
-      disableAnimations={disableAnimations}
-    />
-  ));
+  const transition = useTransition(orders, {
+    // Start at bottom of the page
+    from: { opacity: 0, transform: 'translate3d(0, 150%, 0)' },
+    // Move to the normal position
+    enter: { opacity: 1, transform: 'translate3d(0, 0%, 0)' },
+    // When leaving fade-out
+    leave: { opacity: 0 },
+  });
+
+  const allOrders = !disableAnimations
+    ? transition((style, element) => (
+        <animated.div style={style}>
+          <OrderComponent
+            key={element.id}
+            order={element}
+            onDelivered={() => removeOrder(element.id)}
+          />
+        </animated.div>
+      ))
+    : orders.map((order) => (
+        <OrderComponent key={order.id} order={order} onDelivered={() => removeOrder(order.id)} />
+      ));
   return <OrderContainer>{allOrders}</OrderContainer>;
 }

@@ -72,14 +72,14 @@ pub struct NewVlaaiToOrder {
     pub amount: i32,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderRow {
     pub vlaai: String,
     pub amount: u32,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PendingOrder {
     pub id: u32,

@@ -53,15 +53,19 @@ async fn order_retrieved(
     }
 }
 
+fn update_filter(
+    sender: Sender<UpdateOrder>,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("order" / "retrieved" / u32)
+        .and(with_sender(sender))
+        .and_then(order_retrieved)
+}
+
 async fn warp_main(sender: Sender<UpdateOrder>) {
     // GET /order/retrieved/id
-    let update_order = warp::path!("order" / "retrieved" / u32)
-        .and(with_sender(sender))
-        .and_then(order_retrieved);
-    let log = warp::log("static");
-    let static_files = warp::fs::dir("static").with(log);
+    let static_files = warp::fs::dir("static");
 
-    warp::serve(update_order.or(static_files))
+    warp::serve(update_filter(sender).or(static_files))
         .run(([127, 0, 0, 1], 3030))
         .await;
 }
@@ -87,4 +91,32 @@ fn main() {
         // Run the websocket handler
         handler.start(subscriber, runner).await
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::status_updater::{OrderPublish, OrderStatusUpdater, TestBackend};
+    use warp::http::StatusCode;
+    use warp::test::request;
+
+    #[tokio::test]
+    async fn test_api() {
+        let (sender, receiver) = tokio::sync::mpsc::channel(100);
+        let order_status_updater = OrderStatusUpdater::<TestBackend>::new(receiver);
+        let update = super::update_filter(sender);
+
+        let (subscriber, runner) = order_status_updater.order_mutator();
+        tokio::spawn(async { runner.run().await });
+        let mut sub = subscriber.subscribe();
+
+        let resp = request()
+            .method("GET")
+            .path("/order/retrieved/1")
+            .reply(&update)
+            .await;
+
+        assert_eq!(resp.status(), StatusCode::OK);
+        let message = sub.recv().await;
+        assert_eq!(message.unwrap(), OrderPublish::RemoveOrder(1));
+    }
 }
