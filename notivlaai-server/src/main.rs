@@ -9,8 +9,10 @@ pub mod status_updater;
 mod ws_updater;
 use serde::{Deserialize, Serialize};
 use status_updater::OrderStatusUpdater;
-use status_updater::UpdateOrder;
+use status_updater::{DBBackend, UpdateOrder};
+use std::convert::Infallible;
 use tokio::sync::mpsc::Sender;
+use warp::http::StatusCode;
 use warp::Filter;
 
 /// Use the environment variable for static files, otherwise assume it is the project dir
@@ -27,20 +29,35 @@ fn with_sender(
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 enum UpdateResponse {
     OK,
 }
 
 /// Updating an order
-fn update_order(_sender: Sender<UpdateOrder>) -> warp::reply::Json {
-    warp::reply::json(&UpdateResponse::OK)
+async fn order_retrieved(
+    id: u32,
+    mut sender: Sender<UpdateOrder>,
+) -> Result<impl warp::Reply, std::convert::Infallible> {
+    log::info!("GET order_retrieved");
+    if let Err(_) = sender.send(UpdateOrder::OrderRetrieved(id)).await {
+        Ok(warp::reply::with_status(
+            warp::reply::json(&UpdateResponse::OK),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))
+    } else {
+        Ok(warp::reply::with_status(
+            warp::reply::json(&"".to_string()),
+            StatusCode::OK,
+        ))
+    }
 }
 
 async fn warp_main(sender: Sender<UpdateOrder>) {
-    // GET /hi
-    let update_order = warp::path("updater_order")
+    // GET /order/retrieved/id
+    let update_order = warp::path!("order" / "retrieved" / u32)
         .and(with_sender(sender))
-        .map(update_order);
+        .and_then(order_retrieved);
     let log = warp::log("static");
     let static_files = warp::fs::dir("static").with(log);
 
@@ -58,7 +75,7 @@ fn main() {
 
     let mut runtime = tokio::runtime::Runtime::new().expect("Could not construct runtime");
     let (sender, receiver) = tokio::sync::mpsc::channel(100);
-    let order_status_updater = OrderStatusUpdater::new(receiver);
+    let order_status_updater = OrderStatusUpdater::<DBBackend>::new(receiver);
     let handler = ws_updater::WsUpdater::new(9001);
 
     // Tokio runtime

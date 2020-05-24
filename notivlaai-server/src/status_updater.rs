@@ -4,6 +4,7 @@ use tokio::sync::mpsc;
 
 /// The message that can be received by
 /// someone subscribing on the updater
+#[derive(Debug)]
 pub enum UpdateOrder {
     /// Remove an order from the screen
     OrderRetrieved(u32),
@@ -12,7 +13,7 @@ pub enum UpdateOrder {
 }
 
 /// This enum signifies published changes to the order
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum OrderPublish {
     /// Add an order to the screen
     AddOrder(db::PendingOrder),
@@ -95,6 +96,7 @@ impl<T: Backend> OrderRunner<T> {
     pub async fn run(mut self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         loop {
             while let Some(value) = self.receiver.recv().await {
+                log::info!("Got message {:?}", value);
                 let value = match value {
                     UpdateOrder::OrderRetrieved(id) => {
                         self.backend.order_retrieved(id)?;
@@ -251,5 +253,7 @@ mod tests {
         } else {
             panic!("Did not get the correct response")
         }
+
+        assert!(receiver.try_recv().is_err())
     }
 }

@@ -72,14 +72,14 @@ pub struct NewVlaaiToOrder {
     pub amount: i32,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderRow {
     pub vlaai: String,
     pub amount: u32,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PendingOrder {
     pub id: u32,
@@ -160,7 +160,9 @@ pub fn all_pending_orders(
     conn: &SqliteConnection,
 ) -> Result<Vec<PendingOrder>, Box<dyn std::error::Error + Send + Sync>> {
     // Get all orders in transit
-    let orders: Vec<Order> = order::table.filter(order::in_transit.eq(true)).load(conn)?;
+    let orders: Vec<Order> = order::table
+        .filter(order::in_transit.eq(true).and(order::picked_up.eq(false)))
+        .load(conn)?;
 
     let mut pending_orders = Vec::new();
     // Map onto customers and vlaaien
@@ -258,7 +260,7 @@ pub fn update_order_retrieved(
     order_id: i32,
 ) -> std::result::Result<usize, Box<dyn std::error::Error + Send + Sync>> {
     Ok(diesel::update(order::table.find(order_id))
-        .set((order::in_transit.eq(true), order::picked_up.eq(false)))
+        .set((order::in_transit.eq(false), order::picked_up.eq(true)))
         .execute(conn)?)
 }
 
@@ -297,7 +299,7 @@ mod test {
         let conn = super::establish_connection();
         let pending_orders =
             super::all_pending_orders(&conn).expect("Could not retreive pending orders");
-        assert!(pending_orders.len() > 0)
+        assert!(pending_orders.len() > 0);
     }
 
     #[test]
@@ -310,8 +312,20 @@ mod test {
             super::update_order_retrieved(&conn, 1).expect("Could not update order to retrieved")
                 > 0
         );
+
+        let pending_orders =
+            super::all_pending_orders(&conn).expect("Could not retreive pending orders");
+        println!("{:?}", pending_orders);
+        assert_eq!(pending_orders.len(), 1);
+
         // Set to status as in seed and return
-        assert!(super::update_order_in_transit(&conn, 1).is_ok());
+        let order = super::update_order_in_transit(&conn, 1);
+        assert!(order.is_ok());
+
+        if let Ok(order) = order {
+            assert_eq!(order.picked_up, false);
+            assert_eq!(order.in_transit, true);
+        }
     }
 
     #[test]

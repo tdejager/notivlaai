@@ -1,5 +1,5 @@
 use crate::db;
-use crate::status_updater::{DBBackend, OrderPublish, OrderRunner, OrderSubscriber};
+use crate::status_updater::{Backend, OrderPublish, OrderRunner, OrderSubscriber};
 use futures_util::sink::SinkExt;
 use futures_util::{stream::TryStreamExt, StreamExt};
 use log::info;
@@ -20,7 +20,11 @@ impl WsUpdater {
         WsUpdater { port }
     }
 
-    pub async fn start(self, subscriber: OrderSubscriber, runner: OrderRunner<DBBackend>) {
+    pub async fn start<BackendImpl: Backend + Send + 'static>(
+        self,
+        subscriber: OrderSubscriber,
+        runner: OrderRunner<BackendImpl>,
+    ) {
         start_server(self.port, subscriber, runner).await;
     }
 }
@@ -108,7 +112,11 @@ async fn handle_connection(
     }
 }
 
-async fn start_server(port: u32, subscriber: OrderSubscriber, runner: OrderRunner<DBBackend>) {
+async fn start_server<BackendImpl: Backend + Send + 'static>(
+    port: u32,
+    subscriber: OrderSubscriber,
+    runner: OrderRunner<BackendImpl>,
+) {
     let addr = format!("localhost:{}", port);
 
     // Wait for new updates
