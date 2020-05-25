@@ -229,7 +229,11 @@ pub fn customer_with_name<T: AsRef<str>>(
     name: T,
 ) -> Result<Vec<Customer>, Box<dyn std::error::Error>> {
     Ok(customer::table
-        .filter(customer::first_name.like(name.as_ref()))
+        .filter(
+            customer::first_name
+                .like(name.as_ref())
+                .or(customer::last_name.like(name.as_ref())),
+        )
         .load(conn)?)
 }
 
@@ -282,7 +286,7 @@ mod test {
     pub fn get_client_with_name() {
         let conn = super::establish_connection();
         let results =
-            super::customer_with_name(&conn, "pie%").expect("Could not find customer with name");
+            super::customer_with_name(&conn, "%pie%").expect("Could not find customer with name");
         assert!(results.len() > 0)
     }
 

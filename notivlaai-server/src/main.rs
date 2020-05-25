@@ -10,7 +10,6 @@ mod ws_updater;
 use serde::{Deserialize, Serialize};
 use status_updater::OrderStatusUpdater;
 use status_updater::{DBBackend, UpdateOrder};
-use std::convert::Infallible;
 use tokio::sync::mpsc::Sender;
 use warp::http::StatusCode;
 use warp::Filter;
@@ -40,12 +39,15 @@ async fn order_retrieved(
     mut sender: Sender<UpdateOrder>,
 ) -> Result<impl warp::Reply, std::convert::Infallible> {
     log::info!("GET order_retrieved");
+
+    // Try to send a message to the status updater that the order has been retrieved
     if let Err(_) = sender.send(UpdateOrder::OrderRetrieved(id)).await {
         Ok(warp::reply::with_status(
             warp::reply::json(&UpdateResponse::OK),
             StatusCode::INTERNAL_SERVER_ERROR,
         ))
     } else {
+        // The request has been completed succesfully
         Ok(warp::reply::with_status(
             warp::reply::json(&"".to_string()),
             StatusCode::OK,
@@ -53,6 +55,7 @@ async fn order_retrieved(
     }
 }
 
+/// GET /order/retrieved/id
 fn update_filter(
     sender: Sender<UpdateOrder>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -62,12 +65,15 @@ fn update_filter(
 }
 
 async fn warp_main(sender: Sender<UpdateOrder>) {
-    // GET /order/retrieved/id
     let static_files = warp::fs::dir("static");
 
-    warp::serve(update_filter(sender).or(static_files))
-        .run(([127, 0, 0, 1], 3030))
-        .await;
+    warp::serve(
+        update_filter(sender)
+            .or(static_files)
+            .or(warp::path("search").and(warp::fs::file("./static/index.html"))),
+    )
+    .run(([127, 0, 0, 1], 3030))
+    .await;
 }
 
 fn main() {
@@ -79,6 +85,8 @@ fn main() {
 
     let mut runtime = tokio::runtime::Runtime::new().expect("Could not construct runtime");
     let (sender, receiver) = tokio::sync::mpsc::channel(100);
+
+    // This handles the updating of orders when this is requested by the clien
     let order_status_updater = OrderStatusUpdater::<DBBackend>::new(receiver);
     let handler = ws_updater::WsUpdater::new(9001);
 
@@ -105,18 +113,26 @@ mod tests {
         let order_status_updater = OrderStatusUpdater::<TestBackend>::new(receiver);
         let update = super::update_filter(sender);
 
+        // Get a subscriber and a runner
         let (subscriber, runner) = order_status_updater.order_mutator();
+
+        // Process order updates
         tokio::spawn(async { runner.run().await });
         let mut sub = subscriber.subscribe();
 
+        // We should be able to send a request
         let resp = request()
             .method("GET")
             .path("/order/retrieved/1")
             .reply(&update)
             .await;
 
+        // The request should return an OK
         assert_eq!(resp.status(), StatusCode::OK);
+
+        // And the subscriber should receieve the updated message
         let message = sub.recv().await;
+        // That the order should be removed from the screen
         assert_eq!(message.unwrap(), OrderPublish::RemoveOrder(1));
     }
 }

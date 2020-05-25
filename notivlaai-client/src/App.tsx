@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useEffect } from 'react';
 import { UseStore } from 'zustand';
 import { useTransition, animated } from 'react-spring';
+import { RouteComponentProps } from '@reach/router';
 import { OrderType } from './types';
 import { OrderComponent } from './OrderComponent';
 import { OrderContainer } from './components';
@@ -60,7 +61,7 @@ export default function App({
   isTest = false,
   useStore,
   disableAnimations,
-}: AppProps) {
+}: AppProps & RouteComponentProps) {
   const [started, setStarted] = React.useState(false);
   const { orders, removeOrder, replaceOrders, addOrder } = useStore((state) => ({
     orders: state.orders,
