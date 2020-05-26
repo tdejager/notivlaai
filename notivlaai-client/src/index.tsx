@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Router, RouteComponentProps } from '@reach/router';
+import { Router } from '@reach/router';
 import ReactDOM from 'react-dom';
 import setupStore from './store';
 import SearchComponent from './SearchComponent';
@@ -11,7 +11,7 @@ const mount = document.getElementById('orders');
 ReactDOM.render(
   <Router>
     <App path="/" useStore={useStoreHook} />
-    <SearchComponent path="/search" />
+    <SearchComponent getSuggestions={() => ['hallo', 'doei']} path="/search" />
   </Router>,
   mount
 );

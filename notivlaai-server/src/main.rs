@@ -7,6 +7,7 @@ mod db;
 mod schema;
 pub mod status_updater;
 mod ws_updater;
+use diesel::SqliteConnection;
 use serde::{Deserialize, Serialize};
 use status_updater::OrderStatusUpdater;
 use status_updater::{DBBackend, UpdateOrder};
@@ -25,6 +26,11 @@ fn with_sender(
     sender: Sender<UpdateOrder>,
 ) -> impl Filter<Extract = (Sender<UpdateOrder>,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || sender.clone())
+}
+/// Couples a sender to add to a filter
+fn with_conn(
+) -> impl Filter<Extract = (db::PooledConnection,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || db::establish_connection())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -55,7 +61,25 @@ async fn order_retrieved(
     }
 }
 
-/// GET /order/retrieved/id
+fn find_client(name: String, conn: db::PooledConnection) -> impl warp::Reply {
+    let customer =
+        db::customer_with_name(&conn, format!("%{}%", name)).expect("Could not retrieve customer");
+    let names: Vec<String> = customer
+        .iter()
+        .map(|c| format!("{} {}", c.first_name, c.last_name))
+        .collect();
+    Ok(warp::reply::json(&names))
+}
+
+/// GET /client/find/:name
+fn find_client_filter() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone
+{
+    warp::path!("client" / "find" / String)
+        .and(with_conn())
+        .map(find_client)
+}
+
+/// GET /order/retrieved/:name
 fn update_filter(
     sender: Sender<UpdateOrder>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -69,8 +93,9 @@ async fn warp_main(sender: Sender<UpdateOrder>) {
 
     warp::serve(
         update_filter(sender)
-            .or(static_files)
-            .or(warp::path("search").and(warp::fs::file("./static/index.html"))),
+            .or(find_client_filter())
+            .or(warp::path("search").and(warp::fs::file("./static/index.html")))
+            .or(static_files),
     )
     .run(([127, 0, 0, 1], 3030))
     .await;
@@ -134,5 +159,19 @@ mod tests {
         let message = sub.recv().await;
         // That the order should be removed from the screen
         assert_eq!(message.unwrap(), OrderPublish::RemoveOrder(1));
+    }
+
+    #[tokio::test]
+    async fn test_get_client() {
+        let client = super::find_client_filter();
+
+        let resp = request()
+            .method("GET")
+            .path("/client/find/pie")
+            .reply(&client)
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        println!("{:?}", resp);
     }
 }
