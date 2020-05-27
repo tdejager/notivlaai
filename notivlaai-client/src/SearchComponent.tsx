@@ -2,16 +2,18 @@ import { RouteComponentProps } from '@reach/router';
 import React, { useState, useEffect } from 'react';
 import AutoSuggest from 'react-autosuggest';
 import { OrderType } from './types';
-import { OrderComponent } from './OrderComponent';
+import { OrderComponent, OrderComponentType } from './OrderComponent';
 import { OrderContainer } from './components';
 
 interface SearchComponentProps {
   getSuggestions: (val: string) => Promise<[number, string][]>;
   getOrders: (id: number) => Promise<OrderType[]>;
+  onInTransit: (id: number) => void;
 }
 
 export default function SearchComponent(props: SearchComponentProps & RouteComponentProps) {
-  const { getSuggestions, getOrders } = props;
+  const { getSuggestions, getOrders, onInTransit } = props;
+  const [recompute, setRecompute] = useState(false);
   const [value, setValue] = useState('');
   const [orders, setOrders] = useState(Array<OrderType>());
   const [suggestions, setSuggestion] = useState(Array<[number, string]>());
@@ -31,16 +33,16 @@ export default function SearchComponent(props: SearchComponentProps & RouteCompo
     };
 
     setData();
-  }, [value, suggestions]);
+  }, [value, suggestions, recompute]);
 
   return (
     <>
       <div>
         <AutoSuggest
-          renderSuggestion={(s) => <div>{s[1]}</div>}
+          renderSuggestion={([id, name]) => <div>{name}</div>}
           suggestions={suggestions}
           onSuggestionsFetchRequested={async () => setSuggestion(await getSuggestions(value))}
-          getSuggestionValue={(s) => s[1]}
+          getSuggestionValue={([id, name]) => name}
           inputProps={{
             placeholder: 'Klantnaam',
             value,
@@ -54,7 +56,16 @@ export default function SearchComponent(props: SearchComponentProps & RouteCompo
       </div>
       <OrderContainer style={{ marginTop: '3vmin' }}>
         {orders.map((order) => (
-          <OrderComponent key={order.id} order={order} onDelivered={() => 1} />
+          <OrderComponent
+            viewType={OrderComponentType.Search}
+            key={order.id}
+            order={order}
+            onInTransit={() => {
+              onInTransit(order.id);
+              setRecompute(true);
+            }}
+            onDelivered={() => 1}
+          />
         ))}
       </OrderContainer>
     </>

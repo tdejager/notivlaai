@@ -4,7 +4,7 @@ import { UseStore } from 'zustand';
 import { useTransition, animated } from 'react-spring';
 import { RouteComponentProps } from '@reach/router';
 import { OrderType } from './types';
-import { OrderComponent } from './OrderComponent';
+import { OrderComponent, OrderComponentType } from './OrderComponent';
 import { OrderContainer } from './components';
 import useTimedListener from './Listener';
 import createWebSocketWrapper from './createWebSocketWrapper';
@@ -12,6 +12,7 @@ import { NotivlaaiStore } from './store';
 
 interface OrderRoomProps {
   useStore: UseStore<NotivlaaiStore>;
+  setOrderRetrieved?: (id: number) => void;
   demo?: boolean;
   // Is this running in a test?
   isTest?: boolean;
@@ -59,6 +60,7 @@ function isRemoveOrder(message: AllMessage): message is RemoveOrderMessage {
 export default function OrderRoom({
   demo = false,
   isTest = false,
+  setOrderRetrieved,
   useStore,
   disableAnimations,
 }: OrderRoomProps & RouteComponentProps) {
@@ -94,6 +96,9 @@ export default function OrderRoom({
           .catch((errr) => console.error(errr));
       }
     }, [started]);
+  } else {
+    // eslint-disable-next-line no-param-reassign
+    setOrderRetrieved = removeOrder;
   }
 
   const transition = useTransition(orders, {
@@ -110,13 +115,19 @@ export default function OrderRoom({
         <animated.div style={style}>
           <OrderComponent
             key={element.id}
+            viewType={OrderComponentType.OrderRoom}
             order={element}
-            onDelivered={() => removeOrder(element.id)}
+            onDelivered={() => setOrderRetrieved(element.id)}
           />
         </animated.div>
       ))
     : orders.map((order) => (
-        <OrderComponent key={order.id} order={order} onDelivered={() => removeOrder(order.id)} />
+        <OrderComponent
+          viewType={OrderComponentType.OrderRoom}
+          key={order.id}
+          order={order}
+          onDelivered={() => setOrderRetrieved(order.id)}
+        />
       ));
   return <OrderContainer>{allOrders}</OrderContainer>;
 }

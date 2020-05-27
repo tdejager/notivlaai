@@ -55,6 +55,10 @@ export const Button = styled.button`
     color: #ebdbb2;
     background-color: #282828;
   }
+  &:disabled {
+    background-color: gray;
+    color: black;
+  }
 `;
 Button.displayName = 'Button';
 

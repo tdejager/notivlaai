@@ -31,7 +31,7 @@ fn insert_customer(conn: &SqliteConnection, first_name: &str, last_name: &str, e
 }
 
 /// Insert an order
-fn insert_order(conn: &SqliteConnection, name: &str, vlaaien: &[&str]) {
+fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: &[&str]) {
     let client = schema::customer::table
         .filter(schema::customer::first_name.eq(name))
         .first::<db::Customer>(conn)
@@ -40,7 +40,7 @@ fn insert_order(conn: &SqliteConnection, name: &str, vlaaien: &[&str]) {
     diesel::insert_into(schema::order::table)
         .values(NewOrder {
             customer_id: client.id,
-            in_transit: true,
+            in_transit,
             picked_up: false,
         })
         .execute(conn)
@@ -84,6 +84,6 @@ fn main() {
     insert_customer(&conn, "Peter", "Bergmans", "peter@peter.nl");
     insert_customer(&conn, "Piet", "Pokerface", "pokeren@pokerface.nl");
 
-    insert_order(&conn, "Peter", &["Abrikoos", "Kers"]);
-    insert_order(&conn, "Piet", &["Abrikoos", "Kers"]);
+    insert_order(&conn, false, "Peter", &["Abrikoos", "Kers"]);
+    insert_order(&conn, true, "Piet", &["Abrikoos", "Kers"]);
 }

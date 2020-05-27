@@ -3,7 +3,7 @@ import { Router } from '@reach/router';
 import ReactDOM from 'react-dom';
 import setupStore from './store';
 import SearchComponent from './SearchComponent';
-import App from './App';
+import OrderRoom from './App';
 import { OrderType } from './types';
 
 const [useStoreHook] = setupStore();
@@ -30,11 +30,34 @@ const getOrders = async (id: number) => {
   return [];
 };
 
+// Get orders function
+const inTransit = async (id: number) => {
+  const response = await fetch(`order/in_transit/${id}`);
+  console.log(response);
+  if (!response.ok) {
+    throw new Error('Cannot set order in transit');
+  }
+};
+
+const orderRetrieved = async (id: number) => {
+  // In case we are faking the API, then do not do the call
+  // Ok we have retrieved this order
+  const response = await fetch(`order/retrieved/${id}`);
+  if (!response.ok) {
+    throw new Error('Cannot set order as retrieved');
+  }
+};
+
 const mount = document.getElementById('orders');
 ReactDOM.render(
   <Router>
-    <App path="/" useStore={useStoreHook} />
-    <SearchComponent getSuggestions={getSuggestions} getOrders={getOrders} path="/search" />
+    <OrderRoom setOrderRetrieved={orderRetrieved} path="/" useStore={useStoreHook} />
+    <SearchComponent
+      getSuggestions={getSuggestions}
+      getOrders={getOrders}
+      onInTransit={async (id) => inTransit(id)}
+      path="/search"
+    />
   </Router>,
   mount
 );

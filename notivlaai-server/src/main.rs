@@ -60,6 +60,28 @@ async fn order_retrieved(
     }
 }
 
+/// Updating an order
+async fn order_in_transit(
+    id: u32,
+    mut sender: Sender<UpdateOrder>,
+) -> Result<impl warp::Reply, std::convert::Infallible> {
+    log::info!("GET order_in_transit");
+
+    // Try to send a message to the status updater that the order has been retrieved
+    if let Err(_) = sender.send(UpdateOrder::OrderInTransit(id)).await {
+        Ok(warp::reply::with_status(
+            warp::reply::json(&"".to_string()),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))
+    } else {
+        // The request has been completed succesfully
+        Ok(warp::reply::with_status(
+            warp::reply::json(&"".to_string()),
+            StatusCode::OK,
+        ))
+    }
+}
+
 fn find_client(name: String, conn: db::PooledConnection) -> impl warp::Reply {
     let customer =
         db::customer_with_name(&conn, format!("%{}%", name)).expect("Could not retrieve customer");
@@ -94,7 +116,8 @@ fn find_order_filter() -> impl Filter<Extract = impl warp::Reply, Error = warp::
         .and(with_conn())
         .map(find_order)
 }
-/// GET /order/retrieved/:name
+
+/// GET /order/retrieved/:order_id
 fn update_filter(
     sender: Sender<UpdateOrder>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -103,13 +126,23 @@ fn update_filter(
         .and_then(order_retrieved)
 }
 
+/// GET /order/in_transit/:order_id
+fn in_transit_filter(
+    sender: Sender<UpdateOrder>,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("order" / "in_transit" / u32)
+        .and(with_sender(sender))
+        .and_then(order_in_transit)
+}
+
 async fn warp_main(sender: Sender<UpdateOrder>) {
     let static_files = warp::fs::dir("static");
 
     warp::serve(
-        update_filter(sender)
+        update_filter(sender.clone())
             .or(find_client_filter())
             .or(find_order_filter())
+            .or(in_transit_filter(sender))
             .or(warp::path("search").and(warp::fs::file("./static/index.html")))
             .or(static_files),
     )
@@ -177,6 +210,34 @@ mod tests {
         assert_eq!(message.unwrap(), OrderPublish::RemoveOrder(1));
     }
 
+    #[tokio::test]
+    async fn test_api_in_transit() {
+        let (sender, receiver) = tokio::sync::mpsc::channel(100);
+        let order_status_updater = OrderStatusUpdater::<TestBackend>::new(receiver);
+        let update = super::in_transit_filter(sender);
+
+        // Get a subscriber and a runner
+        let (subscriber, runner) = order_status_updater.order_mutator();
+
+        // Process order updates
+        tokio::spawn(async { runner.run().await });
+        let mut sub = subscriber.subscribe();
+
+        // We should be able to send a request
+        let resp = request()
+            .method("GET")
+            .path("/order/in_transit/1")
+            .reply(&update)
+            .await;
+
+        // The request should return an OK
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        // And the subscriber should receieve the updated message
+        let _message = sub.recv().await;
+        // That the order should be removed from the screen
+        //assert_eq!(message.unwrap(), OrderPublish::AddOrder(1));
+    }
     #[tokio::test]
     async fn test_get_client() {
         let client = super::find_client_filter();

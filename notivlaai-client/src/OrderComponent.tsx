@@ -28,39 +28,82 @@ function VlaaiDisplay(props: { vlaai: VlaaiType; amount: number }) {
   );
 }
 
-export interface OrderProps {
-  order: OrderType;
-  onDelivered: () => void;
+export enum OrderComponentType {
+  Search,
+  OrderRoom,
 }
 
-// function statusToText(inTransit: boolean, pickedUp: boolean) {
-// if (inTransit) return 'Wordt nu afgehaald';
-// if (pickedUp) return 'Reeds opgehaald';
-// if (!inTransit && !pickedUp) return 'Kan worden opgehaald';
-// return 'Onbekende status';
-// }
+export interface OrderProps {
+  order: OrderType;
+  viewType: OrderComponentType;
+  onDelivered?: () => void;
+  onInTransit?: () => void;
+}
+
+function statusToText(inTransit: boolean, pickedUp: boolean) {
+  if (inTransit) return 'Wordt nu afgehaald';
+  if (pickedUp) return 'Reeds opgehaald';
+  if (!inTransit && !pickedUp) return 'Kan worden opgehaald';
+  return 'Onbekende status';
+}
+
+function statusToImg(inTransit: boolean, pickedUp: boolean) {
+  if (inTransit) return '🚚';
+  if (pickedUp) return '✔️';
+  if (!inTransit && !pickedUp) return '📦';
+  return 'Onbekende status';
+}
+
+function buttonsFor(
+  viewType: OrderComponentType,
+  inTransit: boolean,
+  pickedUp: boolean,
+  onDelivered?: () => void,
+  onInTransit?: () => void
+) {
+  switch (viewType) {
+    // Show this when we are in the order room
+    case OrderComponentType.OrderRoom:
+      return (
+        <Button onClick={() => onDelivered()}>
+          <span role="img" aria-label="check">
+            ✔️&nbsp;
+          </span>
+          <span>Opgehaald!</span>
+        </Button>
+      );
+    // Show this when we are searching for something
+    case OrderComponentType.Search:
+      return (
+        <>
+          <Button disabled={pickedUp || inTransit} onClick={() => onInTransit()}>
+            <span role="img" aria-label="check">
+              {statusToImg(inTransit, pickedUp)}&nbsp;
+            </span>
+            <span>{statusToText(inTransit, pickedUp)}</span>
+          </Button>
+        </>
+      );
+    default:
+      return <> </>;
+  }
+}
 
 /**
  * This is a single order for a client
  */
 export function OrderComponent(props: OrderProps) {
-  const { order, onDelivered } = props;
-  const { customerName } = order;
+  const { order, onDelivered, onInTransit, viewType } = props;
+  const { customerName, pickedUp, inTransit } = order;
 
   const displayOrders = order.rows.map((value) => {
     return <VlaaiDisplay key={value.vlaai.toString()} vlaai={value.vlaai} amount={value.amount} />;
   });
-
   return (
     <Order>
       <BestellingHeader>Bestelling voor {customerName}:</BestellingHeader>
       <Vlaaien>{displayOrders}</Vlaaien>
-      <Button onClick={() => onDelivered()}>
-        <span role="img" aria-label="check">
-          ✔️&nbsp;
-        </span>
-        <span>Opgehaald!</span>
-      </Button>
+      {buttonsFor(viewType, inTransit, pickedUp, onDelivered, onInTransit)}
     </Order>
   );
 }
