@@ -64,21 +64,37 @@ async fn order_retrieved(
 fn find_client(name: String, conn: db::PooledConnection) -> impl warp::Reply {
     let customer =
         db::customer_with_name(&conn, format!("%{}%", name)).expect("Could not retrieve customer");
-    let names: Vec<String> = customer
+    let names: Vec<(i32, String)> = customer
         .iter()
-        .map(|c| format!("{} {}", c.first_name, c.last_name))
+        .map(|c| (c.id, format!("{} {}", c.first_name, c.last_name)))
         .collect();
     Ok(warp::reply::json(&names))
+}
+
+fn find_order(id: u32, conn: db::PooledConnection) -> impl warp::Reply {
+    let orders =
+        db::orders_for_customer(&conn, id as i32).expect("Could not retrieve orders for customer");
+    let orders: Vec<db::PendingOrder> = orders
+        .into_iter()
+        .filter_map(|o| db::to_pending(&conn, o).ok())
+        .collect();
+    Ok(warp::reply::json(&orders))
 }
 
 /// GET /client/find/:name
 fn find_client_filter() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone
 {
-    warp::path!("client" / "find" / String)
+    warp::path!("customer" / "find" / String)
         .and(with_conn())
         .map(find_client)
 }
 
+/// GET /order/find/:customer_id
+fn find_order_filter() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("order" / "find" / u32)
+        .and(with_conn())
+        .map(find_order)
+}
 /// GET /order/retrieved/:name
 fn update_filter(
     sender: Sender<UpdateOrder>,
@@ -94,6 +110,7 @@ async fn warp_main(sender: Sender<UpdateOrder>) {
     warp::serve(
         update_filter(sender)
             .or(find_client_filter())
+            .or(find_order_filter())
             .or(warp::path("search").and(warp::fs::file("./static/index.html")))
             .or(static_files),
     )
@@ -167,11 +184,21 @@ mod tests {
 
         let resp = request()
             .method("GET")
-            .path("/client/find/pie")
+            .path("/customer/find/pie")
             .reply(&client)
             .await;
         assert_eq!(resp.status(), StatusCode::OK);
+    }
 
-        println!("{:?}", resp);
+    #[tokio::test]
+    async fn test_get_order() {
+        let client = super::find_order_filter();
+
+        let resp = request()
+            .method("GET")
+            .path("/order/find/1")
+            .reply(&client)
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 }

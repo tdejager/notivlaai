@@ -57,9 +57,10 @@ h1 {
 
 .react-autosuggest__suggestions-container--open {
   display: block;
+  position: absolute;
   /*top: 51px;*/
-  /*left: 23px;*/
-  width: 85%;
+  left: 15%;
+  width: 70%;
   margin: 0 auto;
   border: 1px solid #aaa;
   background-color: #fff;
