@@ -13,6 +13,8 @@ export default function useTimedListener(
       const testData: OrderType = {
         id: 0,
         customerName: 'Tim de Jager',
+        inTransit: true,
+        pickedUp: false,
         rows: [
           {
             vlaai: VlaaiType.Kers,

@@ -31,5 +31,7 @@ export interface OrderRow {
 export interface OrderType {
   id: number;
   customerName: string;
+  inTransit: boolean;
+  pickedUp: boolean;
   rows: Array<OrderRow>;
 }

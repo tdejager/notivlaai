@@ -116,6 +116,8 @@ impl Backend for TestBackend {
     ) -> Result<db::PendingOrder, Box<dyn std::error::Error + Send + Sync>> {
         Ok(db::PendingOrder {
             id: order.id as u32,
+            in_transit: true,
+            picked_up: false,
             customer_name: "Piet".to_string(),
             rows: Default::default(),
         })

@@ -10,7 +10,7 @@ import useTimedListener from './Listener';
 import createWebSocketWrapper from './createWebSocketWrapper';
 import { NotivlaaiStore } from './store';
 
-interface AppProps {
+interface OrderRoomProps {
   useStore: UseStore<NotivlaaiStore>;
   demo?: boolean;
   // Is this running in a test?
@@ -56,12 +56,12 @@ function isRemoveOrder(message: AllMessage): message is RemoveOrderMessage {
   return false;
 }
 
-export default function App({
+export default function OrderRoom({
   demo = false,
   isTest = false,
   useStore,
   disableAnimations,
-}: AppProps & RouteComponentProps) {
+}: OrderRoomProps & RouteComponentProps) {
   const [started, setStarted] = React.useState(false);
   const { orders, removeOrder, replaceOrders, addOrder } = useStore((state) => ({
     orders: state.orders,

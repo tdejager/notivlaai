@@ -33,6 +33,13 @@ export interface OrderProps {
   onDelivered: () => void;
 }
 
+// function statusToText(inTransit: boolean, pickedUp: boolean) {
+// if (inTransit) return 'Wordt nu afgehaald';
+// if (pickedUp) return 'Reeds opgehaald';
+// if (!inTransit && !pickedUp) return 'Kan worden opgehaald';
+// return 'Onbekende status';
+// }
+
 /**
  * This is a single order for a client
  */

@@ -7,7 +7,6 @@ mod db;
 mod schema;
 pub mod status_updater;
 mod ws_updater;
-use diesel::SqliteConnection;
 use serde::{Deserialize, Serialize};
 use status_updater::OrderStatusUpdater;
 use status_updater::{DBBackend, UpdateOrder};
@@ -49,7 +48,7 @@ async fn order_retrieved(
     // Try to send a message to the status updater that the order has been retrieved
     if let Err(_) = sender.send(UpdateOrder::OrderRetrieved(id)).await {
         Ok(warp::reply::with_status(
-            warp::reply::json(&UpdateResponse::OK),
+            warp::reply::json(&"".to_string()),
             StatusCode::INTERNAL_SERVER_ERROR,
         ))
     } else {

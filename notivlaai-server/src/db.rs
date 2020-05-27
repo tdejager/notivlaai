@@ -83,6 +83,8 @@ pub struct OrderRow {
 #[serde(rename_all = "camelCase")]
 pub struct PendingOrder {
     pub id: u32,
+    pub in_transit: bool,
+    pub picked_up: bool,
     pub customer_name: String,
     pub rows: Vec<OrderRow>,
 }
@@ -177,6 +179,8 @@ pub fn all_pending_orders(
         // Create the pending order
         let mut pending_order = PendingOrder {
             id: order.id as u32,
+            picked_up: order.picked_up,
+            in_transit: order.in_transit,
             customer_name: format!("{} {}", customer.first_name, customer.last_name),
             rows: Default::default(),
         };
@@ -218,6 +222,8 @@ pub fn to_pending(
 
     Ok(PendingOrder {
         id: order.id as u32,
+        picked_up: order.picked_up,
+        in_transit: order.in_transit,
         customer_name: format!("{} {}", customer.first_name, customer.last_name),
         rows: order_rows?,
     })
