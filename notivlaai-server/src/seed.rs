@@ -1,12 +1,10 @@
-use db::{NewCustomer, NewOrder, NewVlaai, NewVlaaiToOrder};
+extern crate diesel;
+
 use diesel::prelude::*;
 use diesel::{QueryDsl, RunQueryDsl, SqliteConnection};
 
-#[macro_use]
-extern crate diesel;
-
-mod db;
-mod schema;
+use notivlaai_lib::db::{NewCustomer, NewOrder, NewVlaai, NewVlaaiToOrder};
+use notivlaai_lib::schema;
 
 /// Insert a vlaai into the database
 fn insert_vlaai(conn: &SqliteConnection, name: &str) {
@@ -34,7 +32,7 @@ fn insert_customer(conn: &SqliteConnection, first_name: &str, last_name: &str, e
 fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: &[&str]) {
     let client = schema::customer::table
         .filter(schema::customer::first_name.eq(name))
-        .first::<db::Customer>(conn)
+        .first::<notivlaai_lib::db::Customer>(conn)
         .expect("Could not find customer");
 
     diesel::insert_into(schema::order::table)
@@ -71,7 +69,7 @@ fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: 
 }
 
 fn main() {
-    let conn = db::establish_connection();
+    let conn = notivlaai_lib::db::establish_connection();
 
     // Insert vlaaien
     insert_vlaai(&conn, "Abrikoos");

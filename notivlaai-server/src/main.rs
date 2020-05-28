@@ -1,15 +1,9 @@
-#[macro_use]
-extern crate diesel;
-
-extern crate pretty_env_logger;
-
-mod db;
-mod schema;
-pub mod status_updater;
-mod ws_updater;
+use notivlaai_lib::db;
+use notivlaai_lib::{
+    status_updater::{DBBackend, OrderStatusUpdater, UpdateOrder},
+    ws_updater,
+};
 use serde::{Deserialize, Serialize};
-use status_updater::OrderStatusUpdater;
-use status_updater::{DBBackend, UpdateOrder};
 use tokio::sync::mpsc::Sender;
 use warp::http::StatusCode;
 use warp::Filter;
@@ -151,6 +145,10 @@ async fn warp_main(sender: Sender<UpdateOrder>) {
 }
 
 fn main() {
+    // Set info logging as standard if it is not there
+    if let None = std::env::var_os("RUST_LOG") {
+        std::env::set_var("RUST_LOG", "info");
+    }
     // Load environment file
     dotenv::dotenv().ok();
 
@@ -177,7 +175,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::status_updater::{OrderPublish, OrderStatusUpdater, TestBackend};
+    use notivlaai_lib::status_updater::{OrderPublish, OrderStatusUpdater, TestBackend};
     use warp::http::StatusCode;
     use warp::test::request;
 
@@ -234,9 +232,9 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
 
         // And the subscriber should receieve the updated message
-        let _message = sub.recv().await;
+        let message = sub.recv().await;
         // That the order should be removed from the screen
-        //assert_eq!(message.unwrap(), OrderPublish::AddOrder(1));
+        assert!(matches!(message.unwrap(), OrderPublish::AddOrder(_)));
     }
     #[tokio::test]
     async fn test_get_client() {

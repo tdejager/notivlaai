@@ -21,6 +21,13 @@ lazy_static = "1.4.0"
 log = "0.4"
 pretty_env_logger = "0.4"
  
+[lib]
+name = "notivlaai_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "notivlaai-server"
+path = "src/main.rs"
 
 [[bin]]
 name = "seed"
