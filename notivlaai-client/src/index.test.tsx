@@ -3,10 +3,10 @@ import ReactDOM from 'react-dom';
 import Enzyme, { mount } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import OrderRoom from './App';
-import { setupTestStore } from './store';
 import { OrderContainer } from './components';
 import { OrderComponent } from './OrderComponent';
 import { OrderType, VlaaiType } from './types';
+import setupStore from './store';
 
 Enzyme.configure({ adapter: new Adapter() });
 
@@ -30,7 +30,7 @@ const testData: OrderType = {
 describe('OrderRoom', () => {
   it('renders', () => {
     expect.assertions(1);
-    const [useStoreHook] = setupTestStore();
+    const [useStoreHook] = setupStore();
     const div = document.createElement('div');
     ReactDOM.render(<OrderRoom demo={false} isTest useStore={useStoreHook} />, div);
     expect(true).toBe(true);
@@ -38,7 +38,7 @@ describe('OrderRoom', () => {
 
   it('list should be empty if the store is', () => {
     expect.assertions(2);
-    const [useStoreHook] = setupTestStore();
+    const [useStoreHook] = setupStore();
     const component = mount(<OrderRoom demo={false} isTest useStore={useStoreHook} />);
     expect(component.find(OrderContainer)).toHaveLength(1);
     expect(component.find(OrderComponent)).toHaveLength(0);
@@ -47,7 +47,7 @@ describe('OrderRoom', () => {
   it('should have orders if the store has orders', () => {
     expect.assertions(1);
 
-    const [useStoreHook, api] = setupTestStore();
+    const [useStoreHook, api] = setupStore();
     // Set some test data
     api.setState({ orders: [testData] });
     const component = mount(<OrderRoom demo={false} isTest useStore={useStoreHook} />);
@@ -58,7 +58,7 @@ describe('OrderRoom', () => {
     expect.assertions(1);
 
     // Fake the api
-    const [useStoreHook, api] = setupTestStore();
+    const [useStoreHook, api] = setupStore();
     // Set some test data
     api.setState({ orders: [testData] });
 

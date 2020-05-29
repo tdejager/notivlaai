@@ -32,4 +32,9 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(customer, order, vlaai, vlaai_to_order,);
+allow_tables_to_appear_in_same_query!(
+    customer,
+    order,
+    vlaai,
+    vlaai_to_order,
+);

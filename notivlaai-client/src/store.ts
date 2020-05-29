@@ -1,9 +1,15 @@
 import { create } from 'zustand';
 import { OrderType } from './types';
+import { NotificationMessage } from "./messages";
 
 // This is the store that stores the orders
 export interface NotivlaaiStore {
+  // All the orders in the OrderRoom
   orders: Array<OrderType>;
+  // The last notification received
+  notification: NotificationMessage;
+  // notify
+  notify: (notificationMessage: NotificationMessage) => void;
   // adding orders to the store
   addOrder: (order: OrderType) => void;
   // remove order from the store
@@ -12,9 +18,11 @@ export interface NotivlaaiStore {
   replaceOrders: (orders: [OrderType]) => void;
 }
 
-function innerSetupStore({ fakeApi = false }: StoreProps) {
+function innerSetupStore() {
   return create<NotivlaaiStore>((set) => ({
     orders: [],
+    notification: null,
+    notify: (notificationMessage: NotificationMessage) => set((state) => ({notification: notificationMessage})),
     addOrder: (order: OrderType) => set((state) => ({ orders: [...state.orders, order] })),
     replaceOrders: (orders: [OrderType]) => set(() => ({ orders: [...orders] })),
     removeOrder: async (id: number) => {
@@ -23,23 +31,10 @@ function innerSetupStore({ fakeApi = false }: StoreProps) {
   }));
 }
 
-/**
- * Props that can be passed into the store
- */
-interface StoreProps {
-  fakeApi?: boolean;
-}
-
-/**
- * Setup a test store for testing functionality
- */
-export function setupTestStore() {
-  return innerSetupStore({ fakeApi: true });
-}
 
 /**
  * Setup a default store for actual use
  */
 export default function setupStore() {
-  return innerSetupStore({});
+  return innerSetupStore();
 }
