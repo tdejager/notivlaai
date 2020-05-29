@@ -75,6 +75,7 @@ function Application() {
     <Router>
       <OrderRoom setOrderRetrieved={orderRetrieved} path="/" useStore={useStoreHook} />
       <SearchComponent
+        useStore={useStoreHook}
         getSuggestions={getSuggestions}
         getOrders={getOrders}
         onInTransit={async (id) => inTransit(id)}

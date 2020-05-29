@@ -1,22 +1,25 @@
 import { RouteComponentProps } from '@reach/router';
 import React, { useState, useEffect } from 'react';
 import AutoSuggest from 'react-autosuggest';
+import { UseStore } from 'zustand';
 import { OrderType } from './types';
 import { OrderComponent, OrderComponentType } from './OrderComponent';
 import { OrderContainer } from './components';
+import { NotivlaaiStore } from './store';
 
 interface SearchComponentProps {
   getSuggestions: (val: string) => Promise<[number, string][]>;
   getOrders: (id: number) => Promise<OrderType[]>;
   onInTransit: (id: number) => void;
+  useStore: UseStore<NotivlaaiStore>;
 }
 
 export default function SearchComponent(props: SearchComponentProps & RouteComponentProps) {
-  const { getSuggestions, getOrders, onInTransit } = props;
-  const [recompute, setRecompute] = useState(false);
+  const { getSuggestions, getOrders, onInTransit, useStore } = props;
   const [value, setValue] = useState('');
   const [orders, setOrders] = useState(Array<OrderType>());
   const [suggestions, setSuggestion] = useState(Array<[number, string]>());
+  const { notification } = useStore((state) => ({ notification: state.notification }));
 
   // Set the data if the value has changed
   useEffect(() => {
@@ -27,13 +30,12 @@ export default function SearchComponent(props: SearchComponentProps & RouteCompo
       if (f !== undefined) {
         const [id] = f;
         const newOrders = await getOrders(id);
-        console.log('SET', newOrders);
         setOrders(newOrders);
       }
     };
 
     setData();
-  }, [value, suggestions, recompute]);
+  }, [value, suggestions, notification]);
 
   return (
     <>
@@ -62,7 +64,6 @@ export default function SearchComponent(props: SearchComponentProps & RouteCompo
             order={order}
             onInTransit={() => {
               onInTransit(order.id);
-              setRecompute(true);
             }}
             onDelivered={() => 1}
           />
