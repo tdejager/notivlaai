@@ -1,4 +1,5 @@
 use crate::db;
+use anyhow::anyhow;
 use std::collections::HashMap;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::sync::mpsc;
@@ -26,19 +27,13 @@ pub enum OrderPublish {
 /// a database backend and a vector backend
 pub trait Backend {
     /// Tell the backend to update the order
-    fn order_in_transit(
-        &mut self,
-        id: u32,
-    ) -> Result<db::Order, Box<dyn std::error::Error + Send + Sync>>;
+    fn order_in_transit(&mut self, id: u32) -> anyhow::Result<db::Order>;
 
     /// Tell the backend that the order has been retrieved
-    fn order_retrieved(&mut self, id: u32) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    fn order_retrieved(&mut self, id: u32) -> anyhow::Result<()>;
 
     /// Convert an order to a pending order
-    fn to_pending(
-        &self,
-        order: db::Order,
-    ) -> Result<db::PendingOrder, Box<dyn std::error::Error + Send + Sync>>;
+    fn to_pending(&self, order: db::Order) -> anyhow::Result<db::PendingOrder>;
 }
 
 /// This updates with regards to the datase
@@ -55,20 +50,14 @@ impl Default for DBBackend {
 }
 
 impl Backend for DBBackend {
-    fn order_in_transit(
-        &mut self,
-        id: u32,
-    ) -> Result<db::Order, Box<dyn std::error::Error + Send + Sync>> {
+    fn order_in_transit(&mut self, id: u32) -> anyhow::Result<db::Order> {
         db::update_order_in_transit(&self.conn, id as i32)
     }
-    fn order_retrieved(&mut self, id: u32) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    fn order_retrieved(&mut self, id: u32) -> anyhow::Result<()> {
         db::update_order_retrieved(&self.conn, id as i32)?;
         Ok(())
     }
-    fn to_pending(
-        &self,
-        order: db::Order,
-    ) -> Result<db::PendingOrder, Box<dyn std::error::Error + Send + Sync>> {
+    fn to_pending(&self, order: db::Order) -> anyhow::Result<db::PendingOrder> {
         db::to_pending(&self.conn, order)
     }
 }
@@ -95,25 +84,19 @@ impl Default for TestBackend {
 
 // Backend for simple testing
 impl Backend for TestBackend {
-    fn order_in_transit(
-        &mut self,
-        id: u32,
-    ) -> Result<db::Order, Box<dyn std::error::Error + Send + Sync>> {
-        let order = self.orders.get_mut(&id).ok_or("Not there")?;
+    fn order_in_transit(&mut self, id: u32) -> anyhow::Result<db::Order> {
+        let order = self.orders.get_mut(&id).ok_or(anyhow!("Not there"))?;
         order.picked_up = false;
         order.in_transit = true;
         Ok(*order)
     }
-    fn order_retrieved(&mut self, id: u32) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let order = self.orders.get_mut(&id).ok_or("Not there")?;
+    fn order_retrieved(&mut self, id: u32) -> anyhow::Result<()> {
+        let order = self.orders.get_mut(&id).ok_or(anyhow!("Not there"))?;
         order.picked_up = true;
         order.in_transit = false;
         Ok(())
     }
-    fn to_pending(
-        &self,
-        order: db::Order,
-    ) -> Result<db::PendingOrder, Box<dyn std::error::Error + Send + Sync>> {
+    fn to_pending(&self, order: db::Order) -> anyhow::Result<db::PendingOrder> {
         Ok(db::PendingOrder {
             id: order.id as u32,
             in_transit: true,

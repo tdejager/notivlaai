@@ -145,10 +145,7 @@ pub fn establish_connection() -> PooledConnection {
 }
 
 /// Get the name of a vlaai for a specific id
-pub fn get_vlaai_name(
-    conn: &SqliteConnection,
-    vlaai_id: i32,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+pub fn get_vlaai_name(conn: &SqliteConnection, vlaai_id: i32) -> anyhow::Result<String> {
     let vlaai_name: String = vlaai::table
         .find(vlaai_id)
         .select(vlaai::name)
@@ -156,11 +153,8 @@ pub fn get_vlaai_name(
     Ok(vlaai_name)
 }
 
-#[allow(dead_code)]
 /// Retrieve all pending orders
-pub fn all_pending_orders(
-    conn: &SqliteConnection,
-) -> Result<Vec<PendingOrder>, Box<dyn std::error::Error + Send + Sync>> {
+pub fn all_pending_orders(conn: &SqliteConnection) -> anyhow::Result<Vec<PendingOrder>> {
     // Get all orders in transit
     let orders: Vec<Order> = order::table
         .filter(order::in_transit.eq(true).and(order::picked_up.eq(false)))
@@ -198,12 +192,8 @@ pub fn all_pending_orders(
     Ok(pending_orders)
 }
 
-#[allow(dead_code)]
 /// Convert an existing order to a pending one
-pub fn to_pending(
-    conn: &SqliteConnection,
-    order: Order,
-) -> Result<PendingOrder, Box<dyn std::error::Error + Send + Sync>> {
+pub fn to_pending(conn: &SqliteConnection, order: Order) -> anyhow::Result<PendingOrder> {
     let customer = customer::table
         .find(order.customer_id)
         .get_result::<Customer>(conn)?;
@@ -233,7 +223,7 @@ pub fn to_pending(
 pub fn customer_with_name<T: AsRef<str>>(
     conn: &SqliteConnection,
     name: T,
-) -> Result<Vec<Customer>, Box<dyn std::error::Error>> {
+) -> anyhow::Result<Vec<Customer>> {
     Ok(customer::table
         .filter(
             customer::first_name
@@ -243,42 +233,27 @@ pub fn customer_with_name<T: AsRef<str>>(
         .load(conn)?)
 }
 
-#[allow(dead_code)]
-pub fn orders_for_customer(
-    conn: &SqliteConnection,
-    id: i32,
-) -> Result<Vec<Order>, Box<dyn std::error::Error>> {
+pub fn orders_for_customer(conn: &SqliteConnection, id: i32) -> anyhow::Result<Vec<Order>> {
     // Find the customer
     let customer: Customer = customer::table.find(id).get_result(conn)?;
     Ok(Order::belonging_to(&customer).load(conn)?)
 }
 
-#[allow(dead_code)]
-pub fn update_order_in_transit(
-    conn: &SqliteConnection,
-    order_id: i32,
-) -> Result<Order, Box<dyn std::error::Error + Send + Sync>> {
+pub fn update_order_in_transit(conn: &SqliteConnection, order_id: i32) -> anyhow::Result<Order> {
     diesel::update(order::table.find(order_id))
         .set((order::in_transit.eq(true), order::picked_up.eq(false)))
         .execute(conn)?;
     Ok(order::table.find(order_id).get_result(conn)?)
 }
 
-#[allow(dead_code)]
-pub fn update_order_retrieved(
-    conn: &SqliteConnection,
-    order_id: i32,
-) -> std::result::Result<usize, Box<dyn std::error::Error + Send + Sync>> {
+pub fn update_order_retrieved(conn: &SqliteConnection, order_id: i32) -> anyhow::Result<usize> {
     Ok(diesel::update(order::table.find(order_id))
         .set((order::in_transit.eq(false), order::picked_up.eq(true)))
         .execute(conn)?)
 }
 
 #[allow(dead_code)]
-pub fn update_order_new(
-    conn: &SqliteConnection,
-    order_id: i32,
-) -> std::result::Result<usize, Box<dyn std::error::Error>> {
+pub fn update_order_new(conn: &SqliteConnection, order_id: i32) -> anyhow::Result<usize> {
     Ok(diesel::update(order::table.find(order_id))
         .set((order::in_transit.eq(false), order::picked_up.eq(false)))
         .execute(conn)?)
