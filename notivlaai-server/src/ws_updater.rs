@@ -63,7 +63,7 @@ async fn handle_connection(
     info!("WebSocket connection established: {}", addr);
 
     // Create a sqlite connection
-    let conn = crate::db::establish_connection();
+    let conn = crate::db::establish_connection(false);
 
     let (mut outgoing, incoming) = ws_stream.split();
 

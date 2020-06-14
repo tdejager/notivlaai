@@ -7,9 +7,8 @@ CREATE TABLE vlaai (
 
 CREATE TABLE customer (
     id INTEGER NOT NULL PRIMARY KEY,
-    first_name VARCHAR NOT NULL,
-    last_name VARCHAR NOT NULL,
-    email VARCHAR NOT NULL
+    name VARCHAR NOT NULL,
+    email VARCHAR
 );
 
 CREATE TABLE `order` (

@@ -1,1 +1,4 @@
 /target
+.env
+*_prod.sqlite3
+*.csv

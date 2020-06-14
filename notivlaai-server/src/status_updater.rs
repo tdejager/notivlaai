@@ -44,7 +44,7 @@ pub struct DBBackend {
 impl Default for DBBackend {
     fn default() -> Self {
         DBBackend {
-            conn: db::establish_connection(),
+            conn: db::establish_connection(false),
         }
     }
 }

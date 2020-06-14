@@ -10,6 +10,7 @@ default-run = "notivlaai-server"
 [dependencies]
 warp = "0.2.2"
 diesel = { version = "1.4", features = ["sqlite", "r2d2"] }
+diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 tungstenite = "0.10.1"
 tokio-tungstenite = "0.10"
@@ -21,6 +22,7 @@ lazy_static = "1.4.0"
 log = "0.4"
 pretty_env_logger = "0.4"
 anyhow = "1.0"
+csv = "1.1"
  
 [lib]
 name = "notivlaai_lib"
@@ -33,3 +35,7 @@ path = "src/main.rs"
 [[bin]]
 name = "seed"
 path = "src/seed.rs"
+
+[[bin]]
+name = "load"
+path = "src/load.rs"

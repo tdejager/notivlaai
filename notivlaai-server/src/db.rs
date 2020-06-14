@@ -10,9 +10,8 @@ use serde::Serialize;
 #[table_name = "customer"]
 pub struct Customer {
     pub id: i32,
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
+    pub name: String,
+    pub email: Option<String>,
 }
 
 #[derive(Associations, Identifiable, Queryable)]
@@ -45,8 +44,7 @@ pub struct VlaaiToOrder {
 #[derive(Insertable)]
 #[table_name = "customer"]
 pub struct NewCustomer<'a> {
-    pub first_name: &'a str,
-    pub last_name: &'a str,
+    pub name: &'a str,
     pub email: &'a str,
 }
 
@@ -116,6 +114,7 @@ impl Default for ConnectionOptions {
     }
 }
 
+/// Apply the connection options here, so that we can use foreign keys and multiple readers
 impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
     for ConnectionOptions
 {
@@ -124,12 +123,24 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
     }
 }
 
+/// Get the database url depending if we are in production or development
+fn get_database_url() -> String {
+    if dotenv::var("MODE").unwrap() == "dev" {
+        dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set")
+    } else {
+        dotenv::var("DATABASE_URL_PROD").expect("DATABASE_URL_PROD must be set")
+    }
+}
+
+/// This is a connction pool
 pub type PooledConnection =
     diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>;
+
+// Create the pool singleton here
 lazy_static! {
     /// Create pool singleton
     static ref POOL: Pool<diesel::r2d2::ConnectionManager<SqliteConnection>> = {
-        let database_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let database_url = get_database_url();
         Pool::builder()
             .connection_customizer(Box::new(ConnectionOptions::default()))
             .build(ConnectionManager::<SqliteConnection>::new(database_url))
@@ -138,9 +149,11 @@ lazy_static! {
 }
 
 /// Create a connection from the connection pool
-pub fn establish_connection() -> PooledConnection {
+pub fn establish_connection(is_test: bool) -> PooledConnection {
     dotenv::dotenv().ok();
-
+    if is_test {
+        std::env::set_var("MODE", "dev")
+    }
     POOL.get().expect("Could not get connection")
 }
 
@@ -175,7 +188,7 @@ pub fn all_pending_orders(conn: &SqliteConnection) -> anyhow::Result<Vec<Pending
             id: order.id as u32,
             picked_up: order.picked_up,
             in_transit: order.in_transit,
-            customer_name: format!("{} {}", customer.first_name, customer.last_name),
+            customer_name: customer.name,
             rows: Default::default(),
         };
 
@@ -214,7 +227,7 @@ pub fn to_pending(conn: &SqliteConnection, order: Order) -> anyhow::Result<Pendi
         id: order.id as u32,
         picked_up: order.picked_up,
         in_transit: order.in_transit,
-        customer_name: format!("{} {}", customer.first_name, customer.last_name),
+        customer_name: customer.name,
         rows: order_rows?,
     })
 }
@@ -225,11 +238,7 @@ pub fn customer_with_name<T: AsRef<str>>(
     name: T,
 ) -> anyhow::Result<Vec<Customer>> {
     Ok(customer::table
-        .filter(
-            customer::first_name
-                .like(name.as_ref())
-                .or(customer::last_name.like(name.as_ref())),
-        )
+        .filter(customer::name.like(name.as_ref()))
         .load(conn)?)
 }
 
@@ -265,7 +274,7 @@ mod test {
     use diesel::*;
     #[test]
     pub fn get_client_with_name() {
-        let conn = super::establish_connection();
+        let conn = super::establish_connection(true);
         let results =
             super::customer_with_name(&conn, "%pie%").expect("Could not find customer with name");
         assert!(results.len() > 0)
@@ -273,7 +282,7 @@ mod test {
 
     #[test]
     pub fn order_for_customer() {
-        let conn = super::establish_connection();
+        let conn = super::establish_connection(true);
         let results = super::orders_for_customer(&conn, 1)
             .expect("Could not find orders for customer with this id");
         assert!(results.len() > 0)
@@ -281,7 +290,7 @@ mod test {
 
     #[test]
     pub fn pending_orders() {
-        let conn = super::establish_connection();
+        let conn = super::establish_connection(true);
         let pending_orders =
             super::all_pending_orders(&conn).expect("Could not retreive pending orders");
         assert!(pending_orders.len() > 0);
@@ -289,7 +298,7 @@ mod test {
 
     #[test]
     pub fn updating_order() {
-        let conn = super::establish_connection();
+        let conn = super::establish_connection(true);
         // Change to new
         assert!(super::update_order_new(&conn, 1).expect("Could not update order to be new") > 0);
         // Set to retrieved
@@ -315,7 +324,7 @@ mod test {
 
     #[test]
     pub fn pending() {
-        let conn = super::establish_connection();
+        let conn = super::establish_connection(true);
         assert!(super::to_pending(
             &conn,
             super::order::table

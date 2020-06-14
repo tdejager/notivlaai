@@ -1,10 +1,27 @@
-extern crate diesel;
+#[macro_use]
+extern crate diesel_migrations;
 
 use diesel::prelude::*;
-use diesel::{QueryDsl, RunQueryDsl, SqliteConnection};
-
+use diesel::SqliteConnection;
 use notivlaai_lib::db::{NewCustomer, NewOrder, NewVlaai, NewVlaaiToOrder};
+
 use notivlaai_lib::schema;
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct CSVRecord {
+    name: String,
+    abrikoos: Option<i32>,
+    kers: Option<i32>,
+    halfhalf: Option<i32>,
+    rijst: Option<i32>,
+    kruimelpudding: Option<i32>,
+    appel: Option<i32>,
+    email: Option<String>,
+    speltak: Option<String>,
+}
+
+embed_migrations!();
 
 /// Insert a vlaai into the database
 fn insert_vlaai(conn: &SqliteConnection, name: &str) {
@@ -25,7 +42,7 @@ fn insert_customer(conn: &SqliteConnection, name: &str, email: &str) {
 }
 
 /// Insert an order
-fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: &[&str]) {
+fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: &[(&str, i32)]) {
     let client = schema::customer::table
         .filter(schema::customer::name.eq(name))
         .first::<notivlaai_lib::db::Customer>(conn)
@@ -46,7 +63,7 @@ fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: 
         .first(conn)
         .expect("Could not find order");
 
-    for vlaai in vlaaien {
+    for (vlaai, amount) in vlaaien {
         let vlaai_id: i32 = schema::vlaai::table
             .filter(schema::vlaai::name.eq(vlaai))
             .select(schema::vlaai::id)
@@ -57,15 +74,40 @@ fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: 
             .values(NewVlaaiToOrder {
                 order_id,
                 vlaai_id,
-                amount: 1,
+                amount: *amount,
             })
             .execute(conn)
             .expect("Could not insert vlaai -> order");
     }
 }
 
+/// Create a vlaaien record from the CSVRecord
+fn record_to_vlaai(record: &CSVRecord) -> Vec<(&str, i32)> {
+    let mut slice = Vec::new();
+
+    if let Some(amount) = record.abrikoos {
+        slice.push(("Abrikoos", amount));
+    }
+    if let Some(amount) = record.halfhalf {
+        slice.push(("HalfHalf", amount));
+    }
+    if let Some(amount) = record.kers {
+        slice.push(("Kers", amount));
+    }
+    if let Some(amount) = record.appel {
+        slice.push(("Appel", amount));
+    }
+    if let Some(amount) = record.kruimelpudding {
+        slice.push(("Kruimelpudding", amount));
+    }
+
+    slice
+}
+
 fn main() {
     let conn = notivlaai_lib::db::establish_connection(false);
+    embedded_migrations::run_with_output(&conn, &mut std::io::stdout())
+        .expect("Could not run migrations");
 
     // Insert vlaaien
     insert_vlaai(&conn, "Abrikoos");
@@ -74,10 +116,24 @@ fn main() {
     insert_vlaai(&conn, "Appel");
     insert_vlaai(&conn, "Kruimelpudding");
 
-    // Insert some customers
-    insert_customer(&conn, "Peter Bergmans", "peter@peter.nl");
-    insert_customer(&conn, "Piet Pokerface", "pokeren@pokerface.nl");
+    let mut rdr = csv::Reader::from_path("./orders.csv").expect("Could not open reader");
 
-    insert_order(&conn, false, "Peter Bergmans", &["Abrikoos", "Kers"]);
-    insert_order(&conn, true, "Piet Pokerface", &["Abrikoos", "Kers"]);
+    for result in rdr.deserialize() {
+        let record: CSVRecord = result.expect("could not decode result");
+
+        // Skip these because they are not orders
+        if record.name.is_empty() || record.name.starts_with("Totaal") {
+            continue;
+        }
+
+        insert_customer(
+            &conn,
+            &record.name,
+            &record.email.clone().unwrap_or("".to_owned()),
+        );
+
+        insert_order(&conn, false, &record.name, &record_to_vlaai(&record));
+
+        println!("Inserted {:?}", record);
+    }
 }

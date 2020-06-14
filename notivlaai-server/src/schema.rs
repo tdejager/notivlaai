@@ -1,9 +1,8 @@
 table! {
     customer (id) {
         id -> Integer,
-        first_name -> Text,
-        last_name -> Text,
-        email -> Text,
+        name -> Text,
+        email -> Nullable<Text>,
     }
 }
 

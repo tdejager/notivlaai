@@ -23,7 +23,7 @@ fn with_sender(
 /// Couples a sender to add to a filter
 fn with_conn(
 ) -> impl Filter<Extract = (db::PooledConnection,), Error = std::convert::Infallible> + Clone {
-    warp::any().map(move || db::establish_connection())
+    warp::any().map(move || db::establish_connection(false))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -77,12 +77,14 @@ async fn order_in_transit(
 }
 
 fn find_client(name: String, conn: db::PooledConnection) -> impl warp::Reply {
-    let customer =
-        db::customer_with_name(&conn, format!("%{}%", name)).expect("Could not retrieve customer");
-    let names: Vec<(i32, String)> = customer
-        .iter()
-        .map(|c| (c.id, format!("{} {}", c.first_name, c.last_name)))
-        .collect();
+    // Find the cutomer with like function, trim the string and replace the
+    // %20 space escaped
+    let customer = db::customer_with_name(
+        &conn,
+        format!("%{}%", name.trim_start().trim_end().replace("%20", " ")),
+    )
+    .expect("Could not retrieve customer");
+    let names: Vec<(i32, String)> = customer.iter().map(|c| (c.id, c.name.clone())).collect();
     Ok(warp::reply::json(&names))
 }
 
