@@ -100,6 +100,9 @@ fn record_to_vlaai(record: &CSVRecord) -> Vec<(&str, i32)> {
     if let Some(amount) = record.kruimelpudding {
         slice.push(("Kruimelpudding", amount));
     }
+    if let Some(amount) = record.rijst {
+        slice.push(("Rijst", amount));
+    }
 
     slice
 }
@@ -114,6 +117,7 @@ fn main() {
     insert_vlaai(&conn, "HalfHalf");
     insert_vlaai(&conn, "Kers");
     insert_vlaai(&conn, "Appel");
+    insert_vlaai(&conn, "Rijst");
     insert_vlaai(&conn, "Kruimelpudding");
 
     let mut rdr = csv::Reader::from_path("./orders.csv").expect("Could not open reader");

@@ -1,10 +1,16 @@
-import vlaaiImage from './assets/vlaai.jpg';
+import appelImage from './assets/appel.png';
+import rijstImage from './assets/rijst.jpeg';
+import abrikozenImage from './assets/abrikozenvlaai.png';
+import kersenImage from './assets/kersenvlaai.png';
+import kruimelPuddingImage from './assets/kruimelpudding.png';
+import halfhalfImage from './assets/halfhalf.png';
 
 // Type of vlaai
 export enum VlaaiType {
   Abrikoos = 'Abrikoos',
   Kruimelpudding = 'Kruimelpudding',
   HalfHalf = 'HalfHalf',
+  Rijst = 'Rijst',
   Kers = 'Kers',
   Appel = 'Appel',
 }
@@ -13,13 +19,19 @@ export enum VlaaiType {
 export function vlaaiToImage(vlaaiType: VlaaiType) {
   switch (vlaaiType) {
     case VlaaiType.Abrikoos:
-    case VlaaiType.HalfHalf:
+      return abrikozenImage;
     case VlaaiType.Kers:
-    case VlaaiType.Appel:
+      return kersenImage;
     case VlaaiType.Kruimelpudding:
-      return vlaaiImage;
+      return kruimelPuddingImage;
+    case VlaaiType.HalfHalf:
+      return halfhalfImage;
+    case VlaaiType.Rijst:
+      return rijstImage;
+    case VlaaiType.Appel:
+      return appelImage;
     default:
-      return vlaaiImage;
+      return appelImage;
   }
 }
 

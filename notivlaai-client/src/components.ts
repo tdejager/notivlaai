@@ -10,7 +10,7 @@ export const OrderContainer = styled.div`
 
 export const Order = styled.div`
   display: grid;
-  grid-template-rows: 1fr 3fr 1fr;
+  grid-template-rows: 1fr 2fr 1fr;
   justify-items: center;
   background-color: #3c3836;
   grid-gap: 2vmin 0px;
@@ -64,7 +64,7 @@ Button.displayName = 'Button';
 
 export const Vlaai = styled.img`
   max-width: 100%;
-  max-height: 20vmin;
+  max-height: 30vmin;
   object-fit: contain;
   border: 1px solid #fbf1c7;
   border-radius: 10px;
