@@ -134,6 +134,11 @@ fn in_transit_filter(
 async fn warp_main(sender: Sender<UpdateOrder>) {
     let static_files = warp::fs::dir("static");
 
+    let addr = if dotenv::var("MODE").expect("Could not find MODE in .env file") == "dev" {
+        ([127, 0, 0, 1], 3030)
+    } else {
+        ([0, 0, 0, 0], 3030)
+    };
     warp::serve(
         update_filter(sender.clone())
             .or(find_client_filter())
@@ -142,17 +147,18 @@ async fn warp_main(sender: Sender<UpdateOrder>) {
             .or(warp::path("search").and(warp::fs::file("./static/index.html")))
             .or(static_files),
     )
-    .run(([127, 0, 0, 1], 3030))
+    .run(addr)
     .await;
 }
 
 fn main() {
+    // Load environment file
+    dotenv::dotenv().ok();
+
     // Set info logging as standard if it is not there
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "info");
     }
-    // Load environment file
-    dotenv::dotenv().ok();
 
     // Initialize the logger
     pretty_env_logger::init();

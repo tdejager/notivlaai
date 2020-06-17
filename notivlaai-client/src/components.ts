@@ -10,7 +10,6 @@ export const OrderContainer = styled.div`
 
 export const Order = styled.div`
   display: grid;
-  grid-template-rows: 1fr 2fr 1fr;
   justify-items: center;
   background-color: #3c3836;
   grid-gap: 2vmin 0px;
@@ -19,10 +18,10 @@ export const Order = styled.div`
 
 export const Vlaaien = styled.div`
   display: grid;
-  grid-auto-flow: column;
   margin: 0 auto;
   grid-gap 0 4vmin;
   justify-items: center;
+  grid-template-columns: 1fr 1fr 1fr;
   max-width: 95%;
 `;
 
@@ -40,7 +39,6 @@ export const Button = styled.button`
   flex-direction: row;
   justify-content: center;
   align-self: center;
-  max-width: 50%;
   color: #ebdbb2;
   padding: 15px 32px;
   text-align: center;

@@ -11,10 +11,19 @@ body {
 }
 
 @media (orientation: landscape) {
+  @media (min-width: 1000px) {
+    #root {
+      width: 40%;
+      height: 100%;
+      margin: 0 auto;
+    }
+  }
+  @media (max-width: 1000px) {
   #root {
-    width: 40%;
+    width: 90%;
     height: 100%;
     margin: 0 auto;
+  }
   }
 }
 

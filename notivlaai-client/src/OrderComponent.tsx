@@ -9,6 +9,7 @@ const OverflowDiv = styled.div`
 const SubText = styled.p`
   margin: 0;
   padding: 0;
+  font-size: 14pt;
   text-align: center;
 `;
 /**
