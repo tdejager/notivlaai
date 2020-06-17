@@ -133,7 +133,7 @@ fn main() {
         insert_customer(
             &conn,
             &record.name,
-            &record.email.clone().unwrap_or("".to_owned()),
+            &record.email.clone().unwrap_or_default(),
         );
 
         insert_order(&conn, false, &record.name, &record_to_vlaai(&record));

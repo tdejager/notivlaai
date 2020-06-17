@@ -85,13 +85,19 @@ impl Default for TestBackend {
 // Backend for simple testing
 impl Backend for TestBackend {
     fn order_in_transit(&mut self, id: u32) -> anyhow::Result<db::Order> {
-        let order = self.orders.get_mut(&id).ok_or(anyhow!("Not there"))?;
+        let order = self
+            .orders
+            .get_mut(&id)
+            .ok_or_else(|| anyhow!("Not there"))?;
         order.picked_up = false;
         order.in_transit = true;
         Ok(*order)
     }
     fn order_retrieved(&mut self, id: u32) -> anyhow::Result<()> {
-        let order = self.orders.get_mut(&id).ok_or(anyhow!("Not there"))?;
+        let order = self
+            .orders
+            .get_mut(&id)
+            .ok_or_else(|| anyhow!("Not there"))?;
         order.picked_up = true;
         order.in_transit = false;
         Ok(())

@@ -40,7 +40,7 @@ async fn order_retrieved(
     log::info!("GET order_retrieved");
 
     // Try to send a message to the status updater that the order has been retrieved
-    if let Err(_) = sender.send(UpdateOrder::OrderRetrieved(id)).await {
+    if sender.send(UpdateOrder::OrderRetrieved(id)).await.is_err() {
         Ok(warp::reply::with_status(
             warp::reply::json(&"".to_string()),
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -62,7 +62,7 @@ async fn order_in_transit(
     log::info!("GET order_in_transit");
 
     // Try to send a message to the status updater that the order has been retrieved
-    if let Err(_) = sender.send(UpdateOrder::OrderInTransit(id)).await {
+    if sender.send(UpdateOrder::OrderInTransit(id)).await.is_err() {
         Ok(warp::reply::with_status(
             warp::reply::json(&"".to_string()),
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -148,7 +148,7 @@ async fn warp_main(sender: Sender<UpdateOrder>) {
 
 fn main() {
     // Set info logging as standard if it is not there
-    if let None = std::env::var_os("RUST_LOG") {
+    if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "info");
     }
     // Load environment file
