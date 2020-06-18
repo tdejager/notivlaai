@@ -58,7 +58,9 @@ function Application() {
   // Set the websocket
   useEffect(() => {
     if (!started) {
-      const webSocketWrapper = createWebSocketWrapper('ws://127.0.0.1:9001');
+      const { location } = window;
+      const { host } = location;
+      const webSocketWrapper = createWebSocketWrapper(`ws://${host}:9001`);
       webSocketWrapper.onMessage((e) => {
         const messageJson = JSON.parse(e.data);
         // Add the message as a notification
