@@ -117,7 +117,7 @@ async fn start_server<BackendImpl: Backend + Send + 'static>(
     subscriber: OrderSubscriber,
     runner: OrderRunner<BackendImpl>,
 ) {
-    let addr = format!("localhost:{}", port);
+    let addr = format!("0.0.0.0:{}", port);
 
     // Wait for new updates
     tokio::spawn(async move { runner.run().await });
