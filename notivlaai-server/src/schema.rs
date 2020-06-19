@@ -12,6 +12,7 @@ table! {
         customer_id -> Integer,
         in_transit -> Bool,
         picked_up -> Bool,
+        order_number -> Nullable<Integer>,
     }
 }
 
@@ -31,4 +32,9 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(customer, order, vlaai, vlaai_to_order,);
+allow_tables_to_appear_in_same_query!(
+    customer,
+    order,
+    vlaai,
+    vlaai_to_order,
+);

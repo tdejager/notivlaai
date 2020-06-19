@@ -29,6 +29,7 @@ pub struct Order {
     pub customer_id: i32,
     pub in_transit: bool,
     pub picked_up: bool,
+    pub order_number: Option<i32>,
 }
 
 #[derive(Associations, Identifiable, Queryable)]
@@ -60,6 +61,7 @@ pub struct NewOrder {
     pub customer_id: i32,
     pub in_transit: bool,
     pub picked_up: bool,
+    pub order_number: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -171,6 +173,7 @@ pub fn all_pending_orders(conn: &SqliteConnection) -> anyhow::Result<Vec<Pending
     // Get all orders in transit
     let orders: Vec<Order> = order::table
         .filter(order::in_transit.eq(true).and(order::picked_up.eq(false)))
+        .order_by(order::order_number)
         .load(conn)?;
 
     let mut pending_orders = Vec::new();
@@ -248,24 +251,46 @@ pub fn orders_for_customer(conn: &SqliteConnection, id: i32) -> anyhow::Result<V
     Ok(Order::belonging_to(&customer).load(conn)?)
 }
 
-pub fn update_order_in_transit(conn: &SqliteConnection, order_id: i32) -> anyhow::Result<Order> {
+pub fn update_order_in_transit(
+    conn: &SqliteConnection,
+    order_id: i32,
+    order_number: i32,
+) -> anyhow::Result<Order> {
     diesel::update(order::table.find(order_id))
-        .set((order::in_transit.eq(true), order::picked_up.eq(false)))
+        .set((
+            order::in_transit.eq(true),
+            order::picked_up.eq(false),
+            order::order_number.eq(order_number),
+        ))
         .execute(conn)?;
     Ok(order::table.find(order_id).get_result(conn)?)
 }
 
 pub fn update_order_retrieved(conn: &SqliteConnection, order_id: i32) -> anyhow::Result<usize> {
     Ok(diesel::update(order::table.find(order_id))
-        .set((order::in_transit.eq(false), order::picked_up.eq(true)))
+        .set((
+            order::in_transit.eq(false),
+            order::picked_up.eq(true),
+            order::order_number.eq::<Option<i32>>(None),
+        ))
         .execute(conn)?)
 }
 
-#[allow(dead_code)]
 pub fn update_order_new(conn: &SqliteConnection, order_id: i32) -> anyhow::Result<usize> {
     Ok(diesel::update(order::table.find(order_id))
-        .set((order::in_transit.eq(false), order::picked_up.eq(false)))
+        .set((
+            order::in_transit.eq(false),
+            order::picked_up.eq(false),
+            order::order_number.eq::<Option<i32>>(None),
+        ))
         .execute(conn)?)
+}
+
+pub fn max_order_number(conn: &SqliteConnection) -> anyhow::Result<i32> {
+    Ok(order::table
+        .select(diesel::dsl::max(order::order_number))
+        .first::<Option<i32>>(conn)?
+        .unwrap_or_default())
 }
 
 #[cfg(test)]
@@ -299,6 +324,8 @@ mod test {
     #[test]
     pub fn updating_order() {
         let conn = super::establish_connection(true);
+
+        assert_eq!(super::max_order_number(&conn).unwrap(), 1);
         // Change to new
         assert!(super::update_order_new(&conn, 1).expect("Could not update order to be new") > 0);
         // Set to retrieved
@@ -313,13 +340,17 @@ mod test {
         assert_eq!(pending_orders.len(), 1);
 
         // Set to status as in seed and return
-        let order = super::update_order_in_transit(&conn, 1);
+        let order = super::update_order_in_transit(&conn, 1, 2);
         assert!(order.is_ok());
 
         if let Ok(order) = order {
             assert_eq!(order.picked_up, false);
             assert_eq!(order.in_transit, true);
         }
+
+        assert_eq!(super::max_order_number(&conn).unwrap(), 2);
+
+        super::update_order_in_transit(&conn, 1, 1).unwrap();
     }
 
     #[test]

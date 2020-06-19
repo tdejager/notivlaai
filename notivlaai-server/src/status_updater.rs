@@ -39,19 +39,22 @@ pub trait Backend {
 /// This updates with regards to the datase
 pub struct DBBackend {
     conn: db::PooledConnection,
+    max_order: i32,
 }
 
 impl Default for DBBackend {
     fn default() -> Self {
-        DBBackend {
-            conn: db::establish_connection(false),
-        }
+        let conn = db::establish_connection(false);
+        let max_order = db::max_order_number(&conn).unwrap_or_default();
+        DBBackend { conn, max_order }
     }
 }
 
 impl Backend for DBBackend {
     fn order_in_transit(&mut self, id: u32) -> anyhow::Result<db::Order> {
-        db::update_order_in_transit(&self.conn, id as i32)
+        let result = db::update_order_in_transit(&self.conn, id as i32, self.max_order);
+        self.max_order += 1;
+        result
     }
     fn order_retrieved(&mut self, id: u32) -> anyhow::Result<()> {
         db::update_order_retrieved(&self.conn, id as i32)?;
@@ -76,6 +79,7 @@ impl Default for TestBackend {
                 customer_id: 1,
                 in_transit: false,
                 picked_up: false,
+                order_number: Some(1),
             },
         );
         Self { orders: map }

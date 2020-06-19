@@ -42,7 +42,13 @@ fn insert_customer(conn: &SqliteConnection, name: &str, email: &str) {
 }
 
 /// Insert an order
-fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: &[(&str, i32)]) {
+fn insert_order(
+    conn: &SqliteConnection,
+    in_transit: bool,
+    order_number: Option<i32>,
+    name: &str,
+    vlaaien: &[(&str, i32)],
+) {
     let client = schema::customer::table
         .filter(schema::customer::name.eq(name))
         .first::<notivlaai_lib::db::Customer>(conn)
@@ -53,6 +59,7 @@ fn insert_order(conn: &SqliteConnection, in_transit: bool, name: &str, vlaaien: 
             customer_id: client.id,
             in_transit,
             picked_up: false,
+            order_number,
         })
         .execute(conn)
         .expect("Could not insert order");
@@ -136,7 +143,7 @@ fn main() {
             &record.email.clone().unwrap_or_default(),
         );
 
-        insert_order(&conn, false, &record.name, &record_to_vlaai(&record));
+        insert_order(&conn, false, None, &record.name, &record_to_vlaai(&record));
 
         println!("Inserted {:?}", record);
     }
