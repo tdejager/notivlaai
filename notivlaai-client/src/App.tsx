@@ -8,6 +8,7 @@ import { OrderContainer } from './components';
 import useTimedListener from './Listener';
 import { NotivlaaiStore } from './store';
 import { isAddOrder, isInitialize, isRemoveOrder } from './messages';
+import playBell from "./bell";
 
 interface OrderRoomProps {
   useStore: UseStore<NotivlaaiStore>;
@@ -45,7 +46,12 @@ export default function OrderRoom({
     useEffect(() => {
       if (notification === null) return;
       // Add an order to the store when requested
-      if (isAddOrder(notification)) addOrder(notification.addOrder);
+      if (isAddOrder(notification)) {
+        addOrder(notification.addOrder);
+
+        // Play bell sound
+        (async() => playBell())()
+      }
       // Initialize the list of orders when requested
       else if (isInitialize(notification)) replaceOrders(notification.initialize);
       // Remove an order when requested
