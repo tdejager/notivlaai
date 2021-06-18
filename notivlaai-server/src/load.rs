@@ -10,14 +10,22 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 struct CSVRecord {
-    name: String,
+    #[serde(rename = "Naam")]
+    naam: String,
+    #[serde(rename = "Abrikoos")]
     abrikoos: Option<i32>,
+    #[serde(rename = "Kers")]
     kers: Option<i32>,
+    #[serde(rename = "½ kers / ½ abrikoos")]
     halfhalf: Option<i32>,
+    #[serde(rename = "Rijst")]
     rijst: Option<i32>,
+    #[serde(rename = "Kruimel- pudding")]
     kruimelpudding: Option<i32>,
+    #[serde(rename = "Appel")]
     appel: Option<i32>,
     email: Option<String>,
+    #[serde(rename = "Speltak")]
     speltak: Option<String>,
 }
 
@@ -133,17 +141,17 @@ fn main() {
         let record: CSVRecord = result.expect("could not decode result");
 
         // Skip these because they are not orders
-        if record.name.is_empty() || record.name.starts_with("Totaal") {
+        if record.naam.is_empty() || record.naam.starts_with("Totaal") {
             continue;
         }
 
         insert_customer(
             &conn,
-            &record.name,
+            &record.naam,
             &record.email.clone().unwrap_or_default(),
         );
 
-        insert_order(&conn, false, None, &record.name, &record_to_vlaai(&record));
+        insert_order(&conn, false, None, &record.naam, &record_to_vlaai(&record));
 
         println!("Inserted {:?}", record);
     }
